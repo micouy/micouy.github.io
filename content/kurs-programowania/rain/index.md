@@ -1,0 +1,19 @@
++++
+title = "Rain"
+template = "blank.html"
++++
+
+{% raw_html() %}
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="p5.min.js"></script>
+    <script src="drop.js"></script>
+    <script src="sketch.js"></script>
+  </head>
+  <body style="background: #1c2321;">
+    <main>
+    </main>
+  </body>
+</html>
+{% end %}

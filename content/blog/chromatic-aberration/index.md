@@ -1,0 +1,228 @@
++++
+title = "Chromatic Aberration"
+date = 2021-04-21
+template = "blank.html"
++++
+
+{% raw_html() %}
+<!-- TODO: Move most of the code outside of this shortcode. Maybe use `index.html` template. -->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            html {
+              min-height: 100%;
+              width: 100%;
+              margin: 0;
+              padding: 0;
+            }
+
+            body {
+              font-family: Courier;
+              margin: 0;
+              padding: 0;
+              padding-bottom: 15em;
+              width: 100%;
+              display: flex;
+              background: black;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+
+            a:visited {
+              color: magenta;
+            }
+
+            pre, p {
+              margin: 0;
+            }
+
+            .white-background {
+              width: 25em;
+              margin-top: 0.2em !important;
+              margin-bottom: 0.2em !important;
+              border-radius: 2em;
+              padding: 2em;
+              background: white;
+              color: black;
+              text-align: center;
+            }
+
+            #content {
+                width: 40em;
+                margin-top: 2em;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /*
+            order:
+             - inner red,
+             - inner yellow,
+             - outer red,
+             - inner turquoise,
+             - outer turquoise,
+             - outer blue,
+            */
+
+            #content.glasses-on .white-background {
+              box-shadow:
+                  inset 0.07em 0.07em 0.15em red,
+                  inset 0.2em 0.2em 0.3em yellow,
+                  -0.07em -0.07em 0.15em rgba(255, 0, 0, 0.7),
+                  inset -0.15em -0.15em 0.15em rgba(50, 203, 255),
+                  0.07em 0.07em 0.07em rgba(50, 203, 255),
+                  0.4em 0.4em 0.3em rgba(0, 73, 255, 0.5),
+                  0.4em 0.4em 0.4em rgba(7, 42, 200, 0.2);
+            }
+
+            .black-text {
+              font-weight: bold;
+            }
+
+            /*
+            order:
+             - relative red,
+             - absolute red,
+             - relative blue,
+             - absolute blue,
+             - relative yellow,
+             - absolute yellow,
+             - relative turquoise,
+             - absolute turquoise,
+            */
+
+            #content.glasses-on .black-text {
+              text-shadow:
+                0.005em 0.005em 0.01em red,
+                1px 1px 1px red,
+                -0.01em -0.01em 0.01em rgb(16 16 248 / 0.7),
+                -1px -1px 1px rgb(16 16 248 / 0.7),
+                0.02em 0.02em 0.01em yellow,
+                4px 4px 1px yellow,
+                -0.02em -0.02em 0.01em rgb(50 246 255),
+                -3px -3px 1px rgb(50 246 255);
+            }
+
+            #overlay {
+                top: 0;
+                left: 0;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                display: none;
+            }
+
+            #overlay.blurred {
+                z-index: 1;
+                backdrop-filter: blur(10px);
+                display: block;
+            }
+
+            #glasses-putter {
+                z-index: 2;
+                position: fixed;
+                left: 50%;
+                bottom: 2em;
+                transform: translate(-50%, -50%);
+                color: black;
+                background: white;
+                border: black solid 0.1em;
+                border-radius: 0.3em;
+                font-family: Courier;
+                padding: 0.3em;
+                outline: none;
+            }
+
+            #glasses-putter:hover {
+                text-decoration: underline;
+            }
+
+            #glasses-putter:active {
+                color: #777;
+            }
+
+            #text-below {
+                display: flex;
+                color: white;
+                flex-direction: column;
+                text-align: justify;
+            }
+
+            #footer {
+                margin-top: 2em;
+                color: white;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                width: 100%;
+            }
+        </style>
+        <script>
+            let on = false;
+            let overlay;
+            let button;
+            let content;
+
+            window.onload = () => {
+                overlay = document.getElementById("overlay");
+                button = document.getElementById("glasses-putter");
+                content = document.getElementById("content");
+            };
+
+            function toggle() {
+                if (on) {
+                    overlay.classList.add("blurred");
+                    content.classList.remove("glasses-on");
+                    button.innerHTML = "Put on glasses";
+
+                    on = false;
+                } else {
+                    overlay.classList.remove("blurred");
+                    content.classList.add("glasses-on");
+                    button.innerHTML = "Take off glasses";
+
+                    on = true;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <button id="glasses-putter" style="font-size: 30px;" onclick="toggle()">Put on glasses</button>
+        <div id="overlay" class="blurred"></div>
+        <div id="content">
+            <div class="white-background">
+                <p class="black-text" style="font-size: 170px;">E</p>
+                <p class="black-text" style="font-size: 130px;">F P</p>
+                <p class="black-text" style="font-size: 110px;">T O Z</p>
+                <p class="black-text" style="font-size: 80px;">L P E D</p>
+                <p class="black-text" style="font-size: 70px;">P E C F D</p>
+                <p class="black-text" style="font-size: 60px;">E D F C Z P</p>
+            </div>
+            <div id="text-below">
+                <h1>What am I seeing?</h1>
+
+                <p>Recently I got a new pair of glasses. Can you see these red/yellow and blue/turquoise
+                edges? This is what I see when there's a high contrast between two blobs of colors, but only
+                when I look at them at an angle. Which side is red and which is blue depends on where
+                the object is in my field of view. The effect is especially strong in direct sunlight. It is called
+                <a href="https://en.wikipedia.org/wiki/Chromatic_aberration">chromatic aberration</a>.</p>
+                
+                <br>
+                
+                While building this site I observed a really cool thing I didn't expect - when I tilt my head
+                at a certain angle I can almost make the colors on the screen disappear. It's like the colors
+                and the chromatic aberration cancel out.
+            </div>
+            <div id="footer">
+                <div><a href="https://github.com/micouy">github</a></div>
+                <div>m.powierza@tutanota.com</div>
+                <div><a href="http://micouy.github.io/">bl0g</a></div>
+            </div>
+        </div>
+    </body>
+</html>
+{% end %}

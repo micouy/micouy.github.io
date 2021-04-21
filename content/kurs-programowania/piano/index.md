@@ -1,0 +1,21 @@
++++
+title = "Piano"
+template = "blank.html"
++++
+
+{% raw_html() %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Piano</title>
+        <meta charset="utf-8">
+        <script src="two.min.js"></script>
+        <script src="keyboard.min.js"></script>
+        <script src="Tone.js"></script>
+        <script src="main.js"></script>
+    </head>
+    <body style="background: #562a0e;">
+        <div id="piano"></div>
+    </body>
+</html>
+{% end %}
