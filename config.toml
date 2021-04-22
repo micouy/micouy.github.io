@@ -5,4 +5,8 @@ highlight_code = true
 build_search_index = false
 output_dir = "docs"
 
+[markdown]
+highlight_code = true
+highlight_theme = "nord"
+
 [extra]

@@ -367,8 +367,8 @@ qemu-system-x86_64 -drive format=raw,file=img.bin
 
 The result:
 
-![QEMU screenshot](/img/hello-rust-qemu.png)
+![QEMU screenshot](hello-rust-qemu.png)
 
-Thanks for reading! If you have any questions, contact me.
+Thanks for reading!
 
 *EDIT: thanks to my gf sorry i forgot*
