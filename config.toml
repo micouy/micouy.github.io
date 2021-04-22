@@ -3,5 +3,6 @@ base_url = "https://micouy.github.io"
 compile_sass = true
 highlight_code = true
 build_search_index = false
+output_dir = "docs"
 
 [extra]
