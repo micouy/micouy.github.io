@@ -18,6 +18,7 @@ let config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    parent: 'platformer',
     physics: {
         default: 'arcade',
         arcade: {

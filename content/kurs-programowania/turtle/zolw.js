@@ -76,7 +76,8 @@ let kolory = {
 }
 
 function setup() {
-    createCanvas(400, 400);
+    let cnv = createCanvas(400, 400);
+    cnv.parent('turtle');
     rysunek = createGraphics(400, 400);
     frameRate(5);
     zolw = {

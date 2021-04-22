@@ -1,16 +1,14 @@
 +++
 title = "Snake"
-template = "blank.html"
+template = "page.html"
+
+[extra]
+background = "limegreen"
+color = "darkgreen"
 +++
 
 {% raw_html() %}
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8"/>
-    <script src="https://cdn.jsdelivr.net/gh/jamesroutley/24a2/build/engine.js"></script>
-    <script src="game-level-2.js"></script>
-  </head>
-  <body style="background: limegreen;"></body>
-</html>
+<script src="https://cdn.jsdelivr.net/gh/jamesroutley/24a2/build/engine.js"></script>
+<script src="game.js"></script>
+<div id="snake"></div>
 {% end %}

@@ -97,6 +97,7 @@ let config = {
   onKeyPress: onKeyPress,
   onDotClicked: onDotClicked,
   clearGrid: false,
+  containerId: "paint",
 };
 
 let game = new Game(config);

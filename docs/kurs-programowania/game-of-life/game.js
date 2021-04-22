@@ -167,6 +167,7 @@ let config = {
   onDotClicked: onDotClicked,
   clearGrid: false,
   frameRate: 5,
+  containerId: "game-of-life",
 };
 
 let game = new Game(config);

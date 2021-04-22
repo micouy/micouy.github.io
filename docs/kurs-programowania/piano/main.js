@@ -10,8 +10,10 @@ let style = {
 window.onload = () => {
 	// uruchom two.js
     let elem = document.getElementById('piano');
-    two = new Two({ fullscreen: true });
+    two = new Two({ width: "400", height: "250" });
     two.appendTo(elem);
+    let svg = two.renderer.domElement;
+    svg.style.viewBox = "0 0 400 200";
 
 	// dodaj klawisze
 	let baseX = 50;

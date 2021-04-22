@@ -2,6 +2,6 @@
 title = ""
 +++
 
-# 🚧 This website is under construction. 🚧
+<h1> {{ inline_icon() }} micouy </h1>
 
-[@micouy](https://github.com/micouy)
+### 🚧 under construction 🚧

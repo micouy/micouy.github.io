@@ -3,7 +3,8 @@ const N_DROPS = 500;
 let drops = [];
 
 function setup() {
-  createCanvas(1000, 300);
+  let cnv = createCanvas(1000, 300);
+  cnv.parent('rain');
   generateDrops(drops);
 }
 

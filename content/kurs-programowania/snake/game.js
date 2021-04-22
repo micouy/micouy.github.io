@@ -159,6 +159,7 @@ let config = {
     defaultDotColor: Color.Green,
     clearGrid: true,
     frameRate: 10,
+    containerId: 'snake',
 };
 
 let game = new Game(config);

@@ -1,11 +1,24 @@
 {% extends "index.html" %}
 
+{% block head_extra %}
+<style>
+  body {
+    {%- if page.extra.background -%}
+  	background: {{ page.extra.background }};
+    {%- endif -%}
+    {%- if page.extra.color -%}
+  	color: {{ page.extra.color }};
+    {%- endif -%}
+  }
+</style>
+{% endblock head_extra %}
+
 {% block content %}
 <div class="post">
-    <h1 class="post-title">{{ page.title }}</h1>
-    {% if page.date %}
-    <span class="post-date">{{ page.date | date(format="%Y-%m-%d") }}</span>
-    {% endif %}
-    {{ page.content | safe }}
+  <h1 class="post-title">{{ page.title }}</h1>
+  {% if page.date %}
+  <span class="post-date">{{ page.date | date(format="%Y-%m-%d") }}</span>
+  {% endif %}
+  {{ page.content | safe }}
 </div>
 {% endblock content %}

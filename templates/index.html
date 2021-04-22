@@ -3,38 +3,52 @@
     <head>
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta http-equiv="content-type" content="text/html; charset=utf-8">
+      <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
 
       <!-- Enable responsiveness on mobile devices-->
       <!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
-      <link rel="stylesheet" href="/style.css">
 
       <title>{% block title %}{{ config.title }}{% endblock title %}</title>
 
-      {% block extra_head %}
-      {% endblock extra_head %}
+      {% block stylesheet %}
+      <link rel="stylesheet" href="/style.css">
+      {% endblock stylesheet %}
+
+      {% block head_extra %}
+      {% endblock head_extra %}
     </head>
 
     <body>
         <div class="content container">
             {% block content %}
-                <div class="post">
-                  <h1 class="section-title">{{ section.title }}</h1>
-                  {{ section.content | safe }}
-                  <div class="posts">
-                    {% for url in section.subsections %}
-                      {%- set subsection = get_section(path=url) -%}
+              <h1 class="section-title">{{ section.title }}</h1>
+              {{ section.content | safe }}
+              <div class="subsections">
+                {% for url in section.subsections %}
+                  {%- set subsection = get_section(path=url) -%}
 
-                      <div class="subsection">
-                        <h1 class="subsection-title">
-                          <a href="{{ subsection.path }}">
-                            {{ subsection.title }}
-                          </a>
-                        </h1>
-                      </div>
-                    {% endfor %}
+                  <div class="subsection">
+                    <h1 class="subsection-title">
+                      <a href="{{ subsection.path }}">
+                        {{ subsection.title }}
+                      </a>
+                    </h1>
                   </div>
-                </div>
+                {% endfor %}
+              </div>
+
+              <div class="pages">
+                {% for page in section.pages %}
+                  <div class="page">
+                    <h1 class="page-title">
+                      <a href="{{ page.path }}">
+                        {{ page.title }}
+                      </a>
+                    </h1>
+                  </div>
+                {% endfor %}
+              </div>
             {% endblock content %}
         </div>
     </body>
