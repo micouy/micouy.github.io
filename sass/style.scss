@@ -7,6 +7,7 @@ body {
     margin: 0;
     font-family: $font-family;
     color: $text-color;
+    text-align: justify;
 }
 
 .inline-icon {
@@ -15,10 +16,44 @@ body {
     vertical-align: middle;
 }
 
-.content {
-    margin: 5rem 10%;
+.container {
+    width: 50rem;
+    margin: 5rem  auto;
 }
 
 pre {
     font-size: 1.5em;
+    padding: 1em 1em 30px 1em; // room for scroll
+    border-radius: 0.5rem;
+    overflow-x: scroll;
+}
+
+p > code {
+    background: #2b303b;
+    color: white;
+    padding: 0.2em;
+    border-radius: 0.2em;
+    display: inline;
+}
+
+.header {
+    width: 100%;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.content > * {
+    width: 100%;
+}
+
+.footer {
+    margin-top: 2em;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
 }

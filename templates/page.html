@@ -1,24 +1,37 @@
 {% extends "index.html" %}
 
 {% block head_extra %}
-<style>
-  body {
-    {%- if page.extra.background -%}
-  	background: {{ page.extra.background }};
-    {%- endif -%}
-    {%- if page.extra.color -%}
-  	color: {{ page.extra.color }};
-    {%- endif -%}
-  }
-</style>
+    <style>
+      body {
+        {%- if page.extra.background -%}
+      	background: {{ page.extra.background }};
+        {%- endif -%}
+        {%- if page.extra.color -%}
+      	color: {{ page.extra.color }};
+        {%- endif -%}
+      }
+    </style>
 {% endblock head_extra %}
 
-{% block content %}
-<div class="post">
-  <h1 class="post-title">{{ page.title }}</h1>
-  {% if page.date %}
-  <span class="post-date">{{ page.date | date(format="%Y-%m-%d") }}</span>
-  {% endif %}
-  {{ page.content | safe }}
+{% block header %}
+<div class="header">
+    <h1 class="post-title">{{ page.title }}</h1>
+    {% if page.date %}
+    <span class="post-date">{{ page.date | date(format="%Y-%m-%d") }}</span>
+    {% endif %}
 </div>
-{% endblock content %}
+{% endblock %}
+
+{% block main %}
+<div class="content">
+    {{ page.content | safe }}
+</div>
+{% endblock main %}
+
+{% block footer %}
+<div class="footer">
+    <div><a href="{{ config.extra.github }}">github</a></div>
+    <div>{{ config.extra.email }}</div>
+    <div><a href="{{ config.base_url }}">bl0g</a></div>
+</div>
+{% endblock %}

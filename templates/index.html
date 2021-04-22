@@ -20,8 +20,11 @@
     </head>
 
     <body>
-        <div class="content container">
-            {% block content %}
+        <div class="container">
+            {% block header %}
+            {% endblock header %}
+
+            {% block main %}
               <h1 class="section-title">{{ section.title }}</h1>
               {{ section.content | safe }}
               <div class="subsections">
@@ -49,7 +52,10 @@
                   </div>
                 {% endfor %}
               </div>
-            {% endblock content %}
+            {% endblock main %}
+
+            {% block footer %}
+            {% endblock footer %}
         </div>
     </body>
 </html>
