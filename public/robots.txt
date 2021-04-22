@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://micouy.github.io/sitemap.xml

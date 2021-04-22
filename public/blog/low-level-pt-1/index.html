@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+      <link rel="stylesheet" href="/style.css">
+
+      <title></title>
+
+      
+      
+    </head>
+
+    <body>
+        <div class="content container">
+            
+<div class="post">
+    <h1 class="post-title">Low level stuff pt. 1 - Booting to &#x27;Hello Rust!&#x27;</h1>
+    
+    <span class="post-date">2020-07-17</span>
+    
+    <h1 id="intro">Intro</h1>
+<p>This post is about how I booted to bare metal Rust on x86_64.
+My goal is to describe my learning path and hopefully get
+you interested in things I talk about. I'll be very happy if you
+find this content useful. Note that I'm a beginner and I may be wrong
+about many things. If you want to learn more, I'll put links to many resources.
+You can find all the code in my <a href="https://github.com/micouy/gniazdo-os">repo</a>.</p>
+<h1 id="the-boot-process">The boot process</h1>
+<p>The inspiration for this project came from many sources. I think I first
+discovered <a href="https://github.com/cfenollosa/os-tutorial">cfenollosa/os-tutorial</a>.
+I also read a few chapters from <a href="https://www.cs.bham.ac.uk/%7Eexr/lectures/opsys/10_11/lectures/os-dev.pdf">Writing a Simple Operating System - from Scratch</a>.
+It's a good introduction to OS dev and related topics. First part
+of the tutorial is about bootloaders. To get a grasp of what it's
+all about, I just read every part of the tutorial and tried to write the Assembly
+code by myself.</p>
+<p>Here's a brief explanation of the boot process and what you have to do
+at each stage. First the CPU thinks it's an Intel 8086 model from 1970s IIRC. This stage is
+called Real Mode. You have ~1MiB of memory and 16-bit <a href="https://en.wikipedia.org/wiki/Processor_register">registers</a>
+at your disposition. In RM you are very limited. However, at this stage
+you can use BIOS routines (or interrupts). They're like an external library you can use to
+print a character on the screen, read from and write to hard disk etc.
+You can obviously do these things in other modes but you have to implement it yourself
+or do some hacking to use the interrupts.</p>
+<p>When you're done with RM, you can switch to Protected Mode. In PM the address space
+is extended (you can access more memory), 32-bit registers are enabled
+and addressing works a bit different. To switch to PM,
+you have to set up a <a href="http://www.osdever.net/tutorials/view/the-world-of-protected-mode">Descriptor Table</a>
+which is a piece of data that tells the CPU
+how to interpret addresses, and describes the characteristics of particular
+parts of the memory.</p>
+<hr />
+<p><strong>Note</strong>: At first I thought that in PM address like <code>ds:ebx</code>
+works just like in RM - <code>ds</code> is the segment (in 'data' memory if you want
+to read/write to it or in 'code' memory if you jump to it) and <code>ebx</code>
+is the offset in this segment. In reality <code>ds</code> acts like an index
+into the descriptor table. Then, the selected descriptor is used
+to translate the offset from the segment base (stored in <code>ebx</code>) to a physical address.
+You can read more about addressing in PM <a href="http://ece-research.unm.edu/jimp/310/slides/micro_arch2.html">here</a>.
+Also check out other stuff on <a href="http://ece-research.unm.edu/jimp/">their website</a>.</p>
+<hr />
+<h1 id="extending-the-bootloader-loading-the-second-stage">Extending the bootloader - loading the second stage.</h1>
+<p>The bootloader is a very short piece of code - it's just 512 bytes long.
+I once even ran out of space and had to remove some strings and unnecessary
+code. The actual purpose of the bootloader is to load and run some other code.
+The book suggested booting to PM and jumping to a 32-bit kernel written in C.
+I didn't really like programming in C and at this point I lost my motivation.</p>
+<p>Another time I learned about Philipp Oppermann's <a href="https://os.phil-opp.com/">blog</a>
+on OS dev in Rust. I highly recommend it. I got really excited but,
+unfortunately for me, Oppermann <del>uses <a href="https://www.gnu.org/software/grub/">GRUB</a>
+(a kind of bootloader)</del> relies on <a href="https://github.com/rust-osdev/bootimage"><code>bootimage</code></a>
+and <a href="https://github.com/rust-osdev/bootloader"><code>bootloader</code></a> crates to create a bootable image so I decided to come back to the tutorial after
+finishing my own bootloader. At that time booting to a program written in language
+other than Assembly and compiled to a separate file was way beyond my capabilities
+so I left the project for a while.</p>
+<p>A couple weeks ago I got motivated enough to try to boot to a Rust program.
+My plan was to switch to Long Mode. Then I could either run a 64-bit kernel
+or load a second stage bootloader. Second stage bootloader is not limited
+to one sector (can be more than 512 bytes long) and can be 32-bit
+or even 64-bit so it has access to a larger address space and can load
+arbitrarily large files from disk to memory (as long as you implement it).
+Its purpose is to load larger kernels.</p>
+<p>The first step was loading my program from hard disk to memory.
+I took a naive approach. I compiled the bootloader and my program.
+I concatenated both binaries together, one right after the other, to form one file, like this:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">cat</span><span style="color:#c0c5ce;"> bootloader.bin hello_rust.bin &gt; img
+</span></code></pre>
+<p>I didn't care if I could actually execute Rust code, I just wanted
+to test if I can load it. I added necessary code to my bootloader
+and ran the emulator. Unfortunately QEMU just kept restarting.
+I'm not sure what went wrong but it didn't matter since it
+was a stupid way to do it. I could just test loading data from the disk on
+a much simpler bootloader. I first tried to write it myself but after a while
+I just grabbed some code from Stack Overflow and added a simple error message in case
+the BIOS routine failed. After a couple of tries I finally managed to create
+a two-stage bootloader in a single Assembly program. It worked something like this:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#8fa1b3;">org </span><span style="color:#d08770;">0x7c00
+</span><span style="color:#8fa1b3;">first_stage:
+</span><span style="color:#65737e;">    ; load second stage.
+
+    ; `dl` register specifies which disk to load
+    ; data from. it is set by the CPU to the same device
+    ; the bootloader was loaded from.
+
+    ; set `es` to 0x7e0 and `bx` to 0x0.
+    
+    ; the routine will load data to `(es &lt;&lt; 4) | bx`
+    ; or 0x7e00.
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ax</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x7e0
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">es</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">ax
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">bx</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0
+
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">al</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x1</span><span style="color:#65737e;"> ; # of sectors to read.
+    
+    </span><span style="color:#b48ead;">push </span><span style="color:#bf616a;">ax</span><span style="color:#65737e;"> ; store `al` for later.
+
+    ; specify where the data is stored on the disk.
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ch</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0</span><span style="color:#65737e;"> ; cylinder.
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">dh</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0</span><span style="color:#65737e;"> ; head.
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">cl</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x2</span><span style="color:#65737e;"> ; sector right after bootloader.
+
+    ; `int 0x13` with `ah` set to 0x2
+    ; loads data from disk to memory.
+    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ah</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x2
+    </span><span style="color:#b48ead;">int </span><span style="color:#d08770;">0x13
+
+    </span><span style="color:#b48ead;">pop </span><span style="color:#bf616a;">bx</span><span style="color:#65737e;"> ; restore `al` to `bl`.
+
+    ; check whether the number of sectors read is correct.
+    </span><span style="color:#b48ead;">cmp </span><span style="color:#bf616a;">al</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">bl
+    </span><span style="color:#b48ead;">jne </span><span style="color:#8fa1b3;">error
+       
+    </span><span style="color:#b48ead;">jmp </span><span style="color:#d08770;">0x7e00</span><span style="color:#65737e;"> ; jump to second stage.
+
+</span><span style="color:#8fa1b3;">error:
+</span><span style="color:#65737e;">    ; print error message, then halt.
+    </span><span style="color:#b48ead;">jmp </span><span style="color:#8fa1b3;">$
+
+</span><span style="color:#65737e;">; fill the rest of the first sector with zeros.
+; it&#39;s 510 and not 512 because the last two bytes
+; are 0xaa and 0x55 - the &#39;magic&#39; number.
+</span><span style="color:#96b5b4;">times </span><span style="color:#d08770;">510</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">($</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">$$) </span><span style="color:#96b5b4;">db </span><span style="color:#d08770;">0
+</span><span style="color:#8fa1b3;">dw </span><span style="color:#d08770;">0xaa55
+
+</span><span style="color:#8fa1b3;">second_stage:
+</span><span style="color:#65737e;">    ; do something, then halt.
+    </span><span style="color:#b48ead;">jmp </span><span style="color:#8fa1b3;">$
+
+</span><span style="color:#65737e;">; padding to fill the rest of the second sector with zeros.
+</span><span style="color:#96b5b4;">times </span><span style="color:#d08770;">1024</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">($</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">$$) </span><span style="color:#96b5b4;">db </span><span style="color:#d08770;">0
+</span></code></pre>
+<p>This way I didn't have to link multiple files and NASM managed the padding of sectors
+for me. The code correctly compiled to a single file which was exactly 1024 bytes long -
+two entire sectors.</p>
+<p>You can also use <code>align 512</code> instead of <code>times 1024-($-$$)</code> to allow
+your code to be arbitrarily large. This could be useful if you wanted to program
+the second stage of your bootloader in Assembly.</p>
+<hr />
+<p><strong>Note</strong>: Don't assume that the registers are initialized with any particular
+value. It took me half an hour or so to realize that I didn't set some register
+correctly in such a simple piece of code. IIRC there are only two things you can
+be sure of - that the bootloader will be loaded to 0x7c00 and that the <code>dl</code> register
+points to the same device the bootloader has been loaded from.</p>
+<hr />
+<h1 id="long-mode">Long Mode</h1>
+<p>After I managed to load the second sector I wanted to replace the Assembly code
+with Rust code. To check whether I could execute it I needed to switch to Long Mode.
+That's because I had some problems with compiling Rust code to 32-bit
+and I ended up using the <code>x86_64-unknown-none</code> target triple, just like
+in Oppermann's tutorial.</p>
+<p>Long Mode adds a new memory model (paging), and enables the use
+of 64-bit instructions and registers. Switching to LM requires setting up paging.
+I identity-mapped the first 2 MiB of memory which is enough for now. I think it
+can be modified later by my Rust program. I read the following guides on paging:</p>
+<ul>
+<li><a href="https://wiki.osdev.org/Setting_Up_Long_Mode#Setting_up_the_Paging">https://wiki.osdev.org/Setting_Up_Long_Mode#Setting_up_the_Paging</a> </li>
+<li><a href="https://wiki.osdev.org/Paging#Enabling">https://wiki.osdev.org/Paging#Enabling</a></li>
+<li><a href="https://intermezzos.github.io/book/first-edition/transitioning-to-long-mode.html">https://intermezzos.github.io/book/first-edition/transitioning-to-long-mode.html</a></li>
+<li><a href="http://ece-research.unm.edu/jimp/310/slides/micro_arch3.html">http://ece-research.unm.edu/jimp/310/slides/micro_arch3.html</a></li>
+<li><a href="https://os.phil-opp.com/entering-longmode/">https://os.phil-opp.com/entering-longmode/</a></li>
+</ul>
+<p>There are also other things you have to do before switching to LM
+like checking <code>cpuid</code> instruction support and the highest instruction
+op code available.</p>
+<h1 id="gluing-assembly-and-rust-together">Gluing Assembly and Rust together</h1>
+<p>I figured that to execute Rust code I needed to glue it with
+the bootloader to create a single binary. In this step I encountered
+a few difficult problems:</p>
+<ul>
+<li>To work correctly, the bootloader has to be stored in the first 512 bytes of the file.
+The last two bytes of this sector have to be 0xaa55.</li>
+<li>My Rust code should also be aligned with the sectors and fill up the last sector
+entirely. Of course I would fill it with some garbage values but they had to
+be there.</li>
+<li>The bootloader has to know how long the Rust code is.</li>
+<li>Both programs will be loaded at specific locations in the memory
+so I have to manage the offsets in addresses.</li>
+</ul>
+<p>Linker seemed like a tool made for this. I've never used a linker before so I just read
+<a href="https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_toc.html"><code>ld</code>'s documentation</a>.
+Unfortunately, I got a bit confused. I didn't understand how the <code>.</code> operator
+worked in linker scripts. I also got something wrong about the <code>AT()</code> instruction.
+You can see the <a href="https://www.reddit.com/r/osdev/comments/hhd7uj/linking_bootloader_with_second_stage/">thread</a>
+I started on Reddit.</p>
+<p>Eventually I came up with such script:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#c0c5ce;">SECTIONS {
+    .boot 0x7c00 : {
+        *(.boot.*);
+    }
+
+    .hello_rust 0x7e00 : {
+        *(.rust.*);
+        . = ALIGN(512);
+    } = 0xdeadc0de
+
+    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
+}
+</span></code></pre>
+<p>Notice that I put all sections beginning with <code>.boot</code> in the first 512 bytes
+and all sections beginning with <code>.rust</code> after 0x7e00. In order to make
+it work I have to rename all sections in the ELF file emitted by <code>rustc</code>
+so that they all start with a prefix. I do it using <code>objcopy</code>
+(in some linkers this option is called <code>--prefix-sections</code>):</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">objcopy</span><span style="color:#c0c5ce;"> hello_rust.o hello_rust_prefixed.o</span><span style="color:#bf616a;"> --prefix-alloc-sections</span><span style="color:#c0c5ce;">=&#39;</span><span style="color:#a3be8c;">.rust</span><span style="color:#c0c5ce;">&#39;
+</span></code></pre>
+<p>The there are two tricks in this script. The first one is that I align
+the end of the <code>.rust</code> section to the nearest sector boundary with <code>. = ALIGN(512)</code>.
+Then I fill the rest with some garbage using <code>= 0xdeadc0de</code>.
+The second trick is in the last line. The <code>SECOND_STAGE_LENGTH</code>
+variable tells the bootloader how many sectors the second stage occupies.
+The size of this section is divided by 512 = 2^9. Since I know
+that the end of this section is aligned with the boundaries
+of the sectors I can just shift it 9 bits to the right.</p>
+<p>These solutions seem a bit hacky. In my understanding the location
+of a piece of code in an ELF file (most common target) doesn't matter. This is not the
+case with the bootloader since the code
+must be aligned to 512 bytes and there must be a magic number
+at the end of the first sector. I'm not sure if there's a problem
+with my lack of knowledge or linkers are just not suitable
+for such tasks.</p>
+<hr />
+<p><strong>Note</strong>: I still don't understand why I can't just 'unpack' whole files into
+sections <code>.boot</code> and <code>.hello_rust</code> like this:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#c0c5ce;">SECTIONS {
+    .boot 0x7c00 : {
+        boot.o;
+    }
+
+    .hello_rust 0x7e00 : {
+        hello_rust.o;
+        . = ALIGN(512);
+    } = 0xdeadc0de
+
+    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
+}
+</span></code></pre>
+<p>The binary produced by the linker is not even 1024 bytes long and there's no
+<code>0xdeadc0de</code> at the end. After trying to run QEMU it just keeps rebooting
+over and over so I suspect there are many things wrong with this program.
+Unfortunately, I know almost nothing about linking so I can't tell you why
+it doesn't work.</p>
+<p>There's another thing I don't get about linking. When I inspected
+<code>hello_rust.o</code> file there were many sections like <code>.relo</code>,
+<code>.symtab</code>, <code>.strtab</code>. The debug build has even more of them.
+I get it that they store useful information about the ELF.
+But in order to produce a binary I have to include each
+section in my script (otherwise the linker complains). Should I just
+write each sections's name? Where do I get the whole list of sections
+from? What if they change? I suppose I could just prefix them all like
+I did. But what if there are many files I want to link?</p>
+<hr />
+<h1 id="hello-rust">Hello Rust!</h1>
+<p>The last part - the Rust program. So far it only
+prints <code>HR</code> on screen. To set up the project
+and compile it properly I followed the instructions
+on <a href="https://os.phil-opp.com/">Oppermann's blog</a>.</p>
+<p><code>main.rs</code> looks like this:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#c0c5ce;">#![</span><span style="color:#bf616a;">no_std</span><span style="color:#c0c5ce;">]
+#![</span><span style="color:#bf616a;">no_main</span><span style="color:#c0c5ce;">]
+
+</span><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">core::panic::PanicInfo;
+
+#[</span><span style="color:#bf616a;">panic_handler</span><span style="color:#c0c5ce;">]
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">panic</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">_info</span><span style="color:#c0c5ce;">: &amp;PanicInfo) -&gt; ! {
+    </span><span style="color:#b48ead;">loop </span><span style="color:#c0c5ce;">{}
+}
+
+#[</span><span style="color:#bf616a;">no_mangle</span><span style="color:#c0c5ce;">]
+</span><span style="color:#b48ead;">pub extern </span><span style="color:#c0c5ce;">&quot;</span><span style="color:#a3be8c;">C</span><span style="color:#c0c5ce;">&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">_start</span><span style="color:#c0c5ce;">() -&gt; ! {
+    </span><span style="color:#65737e;">// print &quot;HR&quot; in the top left corner
+
+    </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> vga: </span><span style="color:#b48ead;">*mut u16 </span><span style="color:#c0c5ce;">= </span><span style="color:#d08770;">0xb8000 </span><span style="color:#c0c5ce;">as </span><span style="color:#b48ead;">*mut u16</span><span style="color:#c0c5ce;">;
+    </span><span style="color:#65737e;">// red on black
+    </span><span style="color:#b48ead;">let</span><span style="color:#c0c5ce;"> style = (</span><span style="color:#d08770;">0x0 </span><span style="color:#c0c5ce;">&lt;&lt; </span><span style="color:#d08770;">4 </span><span style="color:#c0c5ce;">| </span><span style="color:#d08770;">0x4</span><span style="color:#c0c5ce;">);
+    </span><span style="color:#b48ead;">unsafe </span><span style="color:#c0c5ce;">{
+        *vga = style &lt;&lt; </span><span style="color:#d08770;">8 </span><span style="color:#c0c5ce;">| (&#39;</span><span style="color:#a3be8c;">H</span><span style="color:#c0c5ce;">&#39; as </span><span style="color:#b48ead;">u16 </span><span style="color:#c0c5ce;">&amp; </span><span style="color:#d08770;">0xff</span><span style="color:#c0c5ce;">);
+        vga = vga.</span><span style="color:#96b5b4;">offset</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">);
+        *vga = style &lt;&lt; </span><span style="color:#d08770;">8 </span><span style="color:#c0c5ce;">| (&#39;</span><span style="color:#a3be8c;">R</span><span style="color:#c0c5ce;">&#39; as </span><span style="color:#b48ead;">u16 </span><span style="color:#c0c5ce;">&amp; </span><span style="color:#d08770;">0xff</span><span style="color:#c0c5ce;">);
+    }
+
+    </span><span style="color:#b48ead;">loop </span><span style="color:#c0c5ce;">{}
+}
+</span></code></pre>
+<p>I use <code>cargo-xbuild</code> (it allows you to compile the <code>core</code> library
+to a specified target) to emit an object file that would later be linked
+with my bootloader:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">cargo</span><span style="color:#c0c5ce;"> xrustc</span><span style="color:#bf616a;"> --release</span><span style="color:#c0c5ce;"> -- --emit obj=hello_rust.o
+</span></code></pre>
+<p>I've heard you can also do it without <code>cargo-xbuild</code> but I haven't tested it:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">cargo</span><span style="color:#c0c5ce;"> rustc</span><span style="color:#bf616a;"> -Z</span><span style="color:#c0c5ce;"> build-std=core -- --emit obj=hello_rust.o
+</span></code></pre>
+<p>Then I add the prefix to sections in <code>hello_rust.o</code> and link it with the bootloader:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#65737e;"># add prefix
+</span><span style="color:#bf616a;">objcopy</span><span style="color:#c0c5ce;"> hello_rust.o hello_rust_prefixed.o</span><span style="color:#bf616a;"> --prefix-alloc-sections</span><span style="color:#c0c5ce;">=&#39;</span><span style="color:#a3be8c;">.rust</span><span style="color:#c0c5ce;">&#39;
+
+</span><span style="color:#65737e;"># link
+</span><span style="color:#c0c5ce;">lld hello_rust_prefixed.o boot.o</span><span style="color:#bf616a;"> -T</span><span style="color:#c0c5ce;"> script.ld</span><span style="color:#bf616a;"> --oformat</span><span style="color:#c0c5ce;"> binary</span><span style="color:#bf616a;"> -o</span><span style="color:#c0c5ce;"> img.bin
+</span></code></pre>
+<p>Finally I run the emulator:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">qemu-system-x86_64 -drive</span><span style="color:#c0c5ce;"> format=raw,file=img.bin
+</span></code></pre>
+<p>The result:</p>
+<p><img src="/img/hello-rust-qemu.png" alt="QEMU screenshot" /></p>
+<p>Thanks for reading! If you have any questions, contact me.</p>
+<p><em>EDIT: thanks to my gf sorry i forgot</em></p>
+
+</div>
+
+        </div>
+    </body>
+</html>
