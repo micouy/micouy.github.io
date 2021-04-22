@@ -1,5 +1,5 @@
 +++
-title = "Chromatic Aberration"
+title = "chromatic aberration"
 date = 2021-04-21
 template = "page.html"
 
@@ -103,6 +103,10 @@ order:
     -3px -3px 1px rgb(50 246 255);
 }
 
+.desaturate {
+    filter: saturate(10%);
+}
+
 #overlay {
     top: 0;
     left: 0;
@@ -122,8 +126,8 @@ order:
     z-index: 2;
     position: fixed;
     left: 50%;
-    bottom: 2em;
-    transform: translate(-50%, -50%);
+    bottom: 0.6em;
+    transform: translate(-50%, 0);
     color: black;
     background: white;
     border: black solid 0.1em;
@@ -149,31 +153,52 @@ order:
     let overlay;
     let button;
     let card;
+    let desaturate;
 
     window.onload = () => {
         overlay = document.getElementById("overlay");
         button = document.getElementById("toggle");
         card = document.getElementById("text-card");
+        desaturate = document.getElementsByClassName("desaturate");
+
+        takeOff(); // Make sure everything is set up correctly.
     };
+   
+   
+    function takeOff() {
+        overlay.classList.add("blurred");
+        card.classList.remove("glasses-on");
+        button.innerHTML = "put on glasses";
+
+        for (let img of desaturate) {
+            img.style.filter = "saturate(10%)";
+        }
+    }
+    
+    function putOn() {
+        overlay.classList.remove("blurred");
+        card.classList.add("glasses-on");
+        button.innerHTML = "take off glasses";
+
+        for (let img of desaturate) {
+            img.style.filter = "none";
+        }
+    }
 
     function toggle() {
         if (on) {
-            overlay.classList.add("blurred");
-            card.classList.remove("glasses-on");
-            button.innerHTML = "Put on glasses";
+            takeOff();
 
             on = false;
         } else {
-            overlay.classList.remove("blurred");
-            card.classList.add("glasses-on");
-            button.innerHTML = "Take off glasses";
+            putOn();
 
             on = true;
         }
     }
 </script>
 
-<button id="toggle" style="font-size: 30px;" onclick="toggle()">Put on glasses</button>
+<button id="toggle" style="font-size: 30px;" onclick="toggle()">put on glasses</button>
 <div id="overlay" class="blurred"></div>
 <div id="text-card">
     <p class="black-text" style="font-size: 170px;">E</p>
@@ -185,14 +210,22 @@ order:
 </div>
 {% end %}
 
-# What am I looking at?
+# what am I looking at?
 
-Recently I got a new pair of glasses. Can you see these red/yellow and blue/turquoise
-edges? This is what I see when there's a high contrast between two blobs of colors, but only
-when I look at them at an angle. Which side is red and which is blue depends on where
-the object is in my field of view. The effect is especially strong in direct sunlight. It is called
+recently I got a new pair of glasses. can you see these red/yellow and blue/turquoise
+edges? this is what I see when there's a high contrast between two blobs of colors, but only
+when I look at them at an angle. which side is red and which is blue depends on where
+the object is in my field of view. the effect is especially strong in direct sunlight. it is called
 [chromatic aberration](https://en.wikipedia.org/wiki/Chromatic_aberration).
 
-While building this site I observed a really cool thing I didn't expect - when I tilt my head
-at a certain angle I can almost make the colors on the screen disappear. It's like the colors
+while building this site I observed a really cool thing I didn't expect - when I tilt my head
+at a certain angle I can almost make the colors on the screen disappear. it's like the colors
 and the chromatic aberration cancel out.
+
+here's a painting depicting the effect by /[Wojciech Fangor](https://culture.pl/en/artist/wojciech-fangor)/, a Polish artist.
+
+{{ image(src="wojciech-fangor-sm-34-1974.jpg", maxh="30em", desc="SM 34 by Wojciech Fangor", class="desaturate") }}
+
+and here's a beautiful artwork from /[Grif Studio](https://www.grif.studio/)/. they also put up a [gallery](https://www.grif.studio/chromatic) and a [short film](https://www.grif.studio/chromaticfilm) capturing a similar phenomenon.
+
+{{ image(src="https://mir-s3-cdn-cf.behance.net/project_modules/1400_opt_1/15381756555015.59b2ef09aaaf2.jpg", maxh="30em", desc="Chromatic Black from Grif Studio", class="desaturate") }}

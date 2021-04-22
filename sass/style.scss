@@ -50,6 +50,13 @@ p > code {
     width: 100%;
 }
 
+.content > img {
+    max-height: 30em;
+    width: auto;
+    object-fit: contain;
+    border-radius: 1em;
+}
+
 .footer {
     margin-top: 2em;
     display: flex;
