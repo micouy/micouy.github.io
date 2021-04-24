@@ -6,6 +6,7 @@ template = "page.html"
 [extra]
 background = "black"
 color = "white"
+comments = true
 +++
 
 {% raw_html() %}
