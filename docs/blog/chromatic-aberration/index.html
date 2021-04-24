@@ -7,7 +7,7 @@
 
       <!-- Enable responsiveness on mobile devices-->
       <!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
       <title></title>
 
@@ -36,28 +36,21 @@
             
 <div class="content">
     <style>
-html {
-  min-height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
 
 body {
   font-family: Courier;
-  margin: 0;
-  padding: 0;
-  padding-bottom: 15em;
-  width: 100%;
-  display: flex;
-  background: black;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+}
+
+.container {
+  padding-bottom: 15vw;
+}
+
+a {
+ color: dodgerblue;
 }
 
 a:visited {
-  color: magenta;
+  color: orangered;
 }
 
 #text-card p {
@@ -65,7 +58,8 @@ a:visited {
 }
 
 #text-card {
-  width: 40em;
+  box-sizing: border-box;
+  width: 80%;
   margin-top: 2em;
   display: flex;
   flex-direction: column;
@@ -184,7 +178,6 @@ order:
     window.onload = () => {
         overlay = document.getElementById("overlay");
         button = document.getElementById("toggle");
-        card = document.getElementById("text-card");
         desaturate = document.getElementsByClassName("desaturate");
 
         takeOff(); // Make sure everything is set up correctly.
@@ -193,7 +186,6 @@ order:
    
     function takeOff() {
         overlay.classList.add("blurred");
-        card.classList.remove("glasses-on");
         button.innerHTML = "put on glasses";
 
         for (let img of desaturate) {
@@ -203,7 +195,6 @@ order:
     
     function putOn() {
         overlay.classList.remove("blurred");
-        card.classList.add("glasses-on");
         button.innerHTML = "take off glasses";
 
         for (let img of desaturate) {
@@ -224,16 +215,11 @@ order:
     }
 </script>
 
-<button id="toggle" style="font-size: 30px;" onclick="toggle()">put on glasses</button>
+<button id="toggle" style="font-size: 1.5rem;" onclick="toggle()">put on glasses</button>
 <div id="overlay" class="blurred"></div>
-<div id="text-card">
-    <p class="black-text" style="font-size: 170px;">E</p>
-    <p class="black-text" style="font-size: 130px;">F P</p>
-    <p class="black-text" style="font-size: 110px;">T O Z</p>
-    <p class="black-text" style="font-size: 80px;">L P E D</p>
-    <p class="black-text" style="font-size: 70px;">P E C F D</p>
-    <p class="black-text" style="font-size: 60px;">E D F C Z P</p>
-</div>
+<img src="text-card.svg"
+	class="desaturate"style="max-height: 50em;"
+> 
 <h1 id="what-am-i-looking-at">what am I looking at?</h1>
 <p>recently I got a new pair of glasses. can you see these red/yellow and blue/turquoise
 edges? this is what I see when there's a high contrast between two blobs of colors, but only
@@ -257,9 +243,9 @@ and the chromatic aberration cancel out.</p>
 
             
 <div class="footer">
-    <div><a href="https:&#x2F;&#x2F;micouy.github.io">home</a></div>
-    <div>m.powierza@tutanota.com</div>
-    <div><a href="https:&#x2F;&#x2F;github.com&#x2F;micouy">github</a></div>
+    <a href="https:&#x2F;&#x2F;micouy.github.io">home</a>
+    <p>m.powierza@tutanota.com</p>
+    <a href="https:&#x2F;&#x2F;github.com&#x2F;micouy">github</a>
 </div>
 
         </div>

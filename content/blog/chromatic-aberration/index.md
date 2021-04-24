@@ -10,28 +10,21 @@ color = "white"
 
 {% raw_html() %}
 <style>
-html {
-  min-height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
 
 body {
   font-family: Courier;
-  margin: 0;
-  padding: 0;
-  padding-bottom: 15em;
-  width: 100%;
-  display: flex;
-  background: black;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+}
+
+.container {
+  padding-bottom: 15vw;
+}
+
+a {
+ color: dodgerblue;
 }
 
 a:visited {
-  color: magenta;
+  color: orangered;
 }
 
 #text-card p {
@@ -39,7 +32,8 @@ a:visited {
 }
 
 #text-card {
-  width: 40em;
+  box-sizing: border-box;
+  width: 80%;
   margin-top: 2em;
   display: flex;
   flex-direction: column;
@@ -158,7 +152,6 @@ order:
     window.onload = () => {
         overlay = document.getElementById("overlay");
         button = document.getElementById("toggle");
-        card = document.getElementById("text-card");
         desaturate = document.getElementsByClassName("desaturate");
 
         takeOff(); // Make sure everything is set up correctly.
@@ -167,7 +160,6 @@ order:
    
     function takeOff() {
         overlay.classList.add("blurred");
-        card.classList.remove("glasses-on");
         button.innerHTML = "put on glasses";
 
         for (let img of desaturate) {
@@ -177,7 +169,6 @@ order:
     
     function putOn() {
         overlay.classList.remove("blurred");
-        card.classList.add("glasses-on");
         button.innerHTML = "take off glasses";
 
         for (let img of desaturate) {
@@ -198,17 +189,11 @@ order:
     }
 </script>
 
-<button id="toggle" style="font-size: 30px;" onclick="toggle()">put on glasses</button>
+<button id="toggle" style="font-size: 1.5rem;" onclick="toggle()">put on glasses</button>
 <div id="overlay" class="blurred"></div>
-<div id="text-card">
-    <p class="black-text" style="font-size: 170px;">E</p>
-    <p class="black-text" style="font-size: 130px;">F P</p>
-    <p class="black-text" style="font-size: 110px;">T O Z</p>
-    <p class="black-text" style="font-size: 80px;">L P E D</p>
-    <p class="black-text" style="font-size: 70px;">P E C F D</p>
-    <p class="black-text" style="font-size: 60px;">E D F C Z P</p>
-</div>
 {% end %}
+
+{{ image(src="text-card.svg", maxh="50em", class="desaturate") }} 
 
 # what am I looking at?
 
