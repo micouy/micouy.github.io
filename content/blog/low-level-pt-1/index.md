@@ -3,6 +3,9 @@ title = "Low level stuff pt. 1 - Booting to 'Hello Rust!'"
 date = 2020-07-17T14:10:00+02:00
 tags = ["low-level"]
 draft = false
+
+[extra]
+comments = true
 +++
 
 # Intro
