@@ -3,6 +3,8 @@
 $font-family: Arial;
 $mono-font: Courier;
 $text-color: black;
+$link-unvisited: yellowgreen;
+$link-visited: magenta;
 
 $breakpoints: (medium: 560px, desktop: 1024px);
 
@@ -12,6 +14,7 @@ body {
     font-family: $font-family;
     color: $text-color;
     transition: 70ms;
+    line-height: 1.4;
     /* font-size: calc(12px + 0.5vw); */
 }
 
@@ -30,10 +33,28 @@ a {
     word-wrap: break-word;
 }
 
+ul {
+    margin: 0.2em 0;
+}
+
+p {
+    margin: 0.2em 0;
+}
+
 .inline-icon {
     display: inline-block;
-    height: 1rem;
+    height: 1em;
     vertical-align: middle;
+}
+
+.anchor-link {
+    font-size: 2rem;
+}
+
+@mixin headings {
+    h1, h2, h3, h4, h5, h6 {
+		@content;
+    }
 }
 
 .container {
@@ -52,15 +73,34 @@ a {
     }
 }
 
-p > code {
+code {
     background: #2b303b;
     color: white;
     padding: 0.2rem;
     border-radius: 0.2rem;
     display: inline;
+    font-weight: normal;
 }
 
-p {
+pre > code {
+    background: none;
+    color: none;
+    padding: none;
+    border-radius: none;
+    display: block;
+}
+
+a > code {
+    color: $link-unvisited;
+    text-decoration: underline $link-unvisited;
+}
+
+a > code:visited {
+    color: $link-visited;
+    text-decoration: underline $link-visited;
+}
+
+p, li {
     text-align: justify;
 }
 
