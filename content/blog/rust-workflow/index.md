@@ -1,5 +1,5 @@
 +++
-title = "my rust workflow"
+title = "My Rust workflow"
 date = 2021-04-27
 draft = false
 
