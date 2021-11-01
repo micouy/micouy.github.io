@@ -2,6 +2,9 @@
 title = "logical manifolds"
 draft = false
 date = 2021-11-01
+
+[extra]
+comments = true
 +++
 
 **logical manifold** is a concept which may prove useful in nuanced debates. to explain it,
