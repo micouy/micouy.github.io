@@ -18,10 +18,6 @@ body {
     /* font-size: calc(12px + 0.5vw); */
 }
 
-img {
-    max-width: 100%;
-}
-
 pre {
     font-size: 1.1rem;
     padding: 1rem 1rem 30px 1rem;
@@ -38,7 +34,7 @@ ul {
 }
 
 p {
-    margin: 0.2em 0;
+    margin: 0.4em 0;
 }
 
 .inline-icon {
@@ -118,9 +114,9 @@ p, li {
     width: 100%;
 }
 
-.content > img {
+.content img:not(.inline-icon) {
     max-height: 30rem;
-    width: auto;
+    width: 100%;
     object-fit: contain;
     border-radius: 1rem;
 }
