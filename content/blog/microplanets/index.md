@@ -31,5 +31,6 @@ photos taken through a microscope with my phone (with a little bit of editing)
 {{ image(src="asteroid.png", desc="Asteroid   /   a lichen") }}
 {{ image(src="titan.png", desc="Titan   /   a cross section of a lichen") }}
 {{ image(src="mars.png", desc="Mars   /   a lichen on wood") }}
+{{ image(src="unnamed-1.png", desc="Unnamed 1   /   erio-T indicator and EDTA in hard water") }}
 
 all of the images above are licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
