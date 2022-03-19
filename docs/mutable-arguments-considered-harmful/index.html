@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+      <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+      <title></title>
+
+      
+      <link rel="stylesheet" href="/style.css">
+      
+
+      
+    <style>
+      body {}
+    </style>
+
+    </head>
+
+    <body>
+        <div class="container">
+            
+<div class="header">
+    <a href="https:&#x2F;&#x2F;micouy.github.io">home</a>
+    <h1 class="post-title">Mutable arguments considered harmful</h1>
+    
+    <span class="post-date">2021-05-03</span>
+    
+</div>
+
+
+            
+<div class="content">
+    <h1 id="principle-of-single-mutable-access"><a href="#principle-of-single-mutable-access" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Principle of single mutable access</h1>
+<p>Rust's borrow checker makes reasoning about mutation easy. It guarantees that at any given
+moment there exists at most one mutable access to each piece of data. You can track the access
+as it is passed around in the code. With this principle, your search is reduced to a single path
+that does not branch out.</p>
+<p>The said principle is very powerful even outside of programming. You can see it in action on
+<a href="https://aggie.io/">aggie.io</a>. It is a platform where you can draw with your friends. Each layer
+in the drawing has at most one owner and only the owner can draw on their layers. Despite (or
+rather because of) its simplicity, this algorithm prevents any conflicting edits.</p>
+<p>Unfortunately, this principle does not prevent the programmer from making other kinds of mistakes.</p>
+<h1 id="incoherent-state"><a href="#incoherent-state" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Incoherent state</h1>
+<p>Consider an example of a bag of nuts:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">enum </span><span style="color:#8fbcbb;">Nut </span><span>{
+</span><span>    Peanut</span><span style="color:#eceff4;">,
+</span><span>    Hazelnut</span><span style="color:#eceff4;">,
+</span><span>    Cashew</span><span style="color:#eceff4;">,
+</span><span>}
+</span><span>
+</span><span style="color:#81a1c1;">struct </span><span style="color:#8fbcbb;">Bag </span><span>{
+</span><span>    contents</span><span style="color:#eceff4;">: </span><span style="color:#8fbcbb;">Vec</span><span>&lt;Nut&gt;,
+</span><span>}
+</span></code></pre>
+<p>In your program you often need to get the number of peanuts in the bag. You can compute it each
+time, or cache it in a second field, like this:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">struct </span><span style="color:#8fbcbb;">Bag </span><span>{
+</span><span>    contents</span><span style="color:#eceff4;">: </span><span style="color:#8fbcbb;">Vec</span><span>&lt;Nut&gt;,
+</span><span>    peanut_count</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">usize</span><span>,
+</span><span>}
+</span></code></pre>
+<p>Unfortunately, in such situations it's easy to introduce incoherent state:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">add_peanut</span><span>(bag</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;mut</span><span> Bag) {
+</span><span>    bag</span><span style="color:#81a1c1;">.</span><span>contents</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">push</span><span>(Nut</span><span style="color:#81a1c1;">::</span><span>Peanut)</span><span style="color:#eceff4;">;
+</span><span>    
+</span><span>    </span><span style="color:#616e88;">// Oops, forgot to increment peanut count.
+</span><span>}
+</span></code></pre>
+<p>In this example you can spot the bug right away. But what if a function mutates multiple
+fields and there are more complex relations between them? Or what if multiple functions
+mutate fields independently? At this point it becomes harder to reason about the state.</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">add_peanut</span><span>(bag</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;mut</span><span> Bag) {
+</span><span>    </span><span style="color:#88c0d0;">add_nut</span><span>(bag</span><span style="color:#eceff4;">, </span><span>Nut</span><span style="color:#81a1c1;">::</span><span>Peanut)</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>    </span><span style="color:#616e88;">// What if I added another function call between these two?
+</span><span>    </span><span style="color:#616e88;">// Can I make any assumptions about the state of `bag`?
+</span><span>
+</span><span>    </span><span style="color:#88c0d0;">increment_peanut_count</span><span>(bag)</span><span style="color:#eceff4;">;
+</span><span>}
+</span></code></pre>
+<p>In the example above, between the first and second function call, the bag is in a incoherent
+state. It's okay because the program cannot access the bag while the function has the mutable
+reference. And after the function is done, <code>bag</code> is again in a valid state.</p>
+<p>However, this approach is quite error prone. And it's not just about bad function design. Notice that
+whenever a function mutates a state that has interrelated components, it must do it <strong>sequentially</strong>:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">struct </span><span style="color:#8fbcbb;">State </span><span>{
+</span><span>    x</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">i32</span><span>,
+</span><span>    double_ix</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">i32</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#81a1c1;">impl </span><span>State {
+</span><span>    </span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">well_designed_method</span><span>(</span><span style="color:#81a1c1;">&amp;mut </span><span>self) {
+</span><span>        </span><span style="color:#81a1c1;">self.</span><span>x </span><span style="color:#81a1c1;">+= </span><span style="color:#b48ead;">1</span><span style="color:#eceff4;">;
+</span><span>        
+</span><span>        </span><span style="color:#616e88;">// Incoherent state here.
+</span><span>        
+</span><span>        </span><span style="color:#81a1c1;">self.</span><span>double_x </span><span style="color:#81a1c1;">= self.</span><span>x </span><span style="color:#81a1c1;">* </span><span style="color:#b48ead;">2</span><span style="color:#eceff4;">;
+</span><span>    }
+</span><span>}
+</span></code></pre>
+<p>Even if you hide the internal representation and only mutate the state through methods,
+it is possible to introduce bugs in the methods themselves (a trivial observation, but bear with me).</p>
+<p>The other problem with methods is that taking mutable reference to <code>self</code> is implicit.
+Checkout this code form <code>ripgrep</code>:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">if</span><span> subject</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">is_stdin</span><span>() {
+</span><span>    </span><span style="color:#81a1c1;">self.</span><span style="color:#88c0d0;">search_reader</span><span>(path</span><span style="color:#eceff4;">, </span><span>io</span><span style="color:#81a1c1;">::</span><span>stdin()</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">lock</span><span>())   </span><span style="color:#616e88;">// Takes &amp;mut self.
+</span><span>} </span><span style="color:#81a1c1;">else if self.</span><span style="color:#88c0d0;">should_preprocess</span><span>(path) {           </span><span style="color:#616e88;">// Takes &amp;self.
+</span><span>    </span><span style="color:#81a1c1;">self.</span><span style="color:#88c0d0;">search_preprocessor</span><span>(path)                 </span><span style="color:#616e88;">// Takes &amp;mut self.
+</span><span>} </span><span style="color:#81a1c1;">else if self.</span><span style="color:#88c0d0;">should_decompress</span><span>(path) {           </span><span style="color:#616e88;">// Takes &amp;self.
+</span><span>    </span><span style="color:#81a1c1;">self.</span><span style="color:#88c0d0;">search_decompress</span><span>(path)                   </span><span style="color:#616e88;">// Takes &amp;mut self.
+</span><span>} </span><span style="color:#81a1c1;">else </span><span>{
+</span><span>    </span><span style="color:#81a1c1;">self.</span><span style="color:#88c0d0;">search_path</span><span>(path)                         </span><span style="color:#616e88;">// Takes &amp;mut self.
+</span><span>}
+</span></code></pre>
+<p>It's BurntSushi's code, so of course it makes sense - evaluating conditions doesn't require
+mutable access, doing things with the state does. The point is that you can't
+be sure what the code does just from reading it.</p>
+<h1 id="functional-approach"><a href="#functional-approach" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Functional approach</h1>
+<p>As an alternative I propose pure functions. Instead of mutating the input state,
+a pure function unpacks the input state, constructs a new state and returns it. Of course
+it's nothing new but it's so rarely used in Rust code that I think it's worth talking about.</p>
+<p>There are three big advantages:</p>
+<ul>
+<li><strong>Not</strong> mutating a field is as explicit as mutating it.</li>
+<li>There is no line in which data is in incoherent state.</li>
+<li>There are no implicit mutable references to <code>self</code>, so no implicit mutation can sneak in.</li>
+</ul>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">add_peanut_on_condition</span><span>(bag</span><span style="color:#eceff4;">:</span><span> Bag) </span><span style="color:#eceff4;">-&gt;</span><span> Bag {
+</span><span>    </span><span style="color:#81a1c1;">let</span><span> Bag {
+</span><span>        content</span><span style="color:#eceff4;">:</span><span> old_content</span><span style="color:#eceff4;">,
+</span><span>        peanut_count</span><span style="color:#eceff4;">:</span><span> old_peanut_count</span><span style="color:#eceff4;">,
+</span><span>    } </span><span style="color:#81a1c1;">=</span><span> bag</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>    </span><span style="color:#616e88;">// `bag` cannot be in incoherent state, since there&#39;s no `bag`
+</span><span>    </span><span style="color:#616e88;">// at this point.
+</span><span>
+</span><span>    </span><span style="color:#81a1c1;">if</span><span> some_condition {
+</span><span>        </span><span style="color:#81a1c1;">let</span><span> new_content </span><span style="color:#81a1c1;">= </span><span style="color:#88c0d0;">add_nut</span><span>(old_content</span><span style="color:#eceff4;">, </span><span>Nut</span><span style="color:#81a1c1;">::</span><span>Peanut)</span><span style="color:#eceff4;">;
+</span><span>        </span><span style="color:#81a1c1;">let</span><span> new_peanut_count </span><span style="color:#81a1c1;">= </span><span style="color:#88c0d0;">increment_peanut_count</span><span>(old_peanut_count)</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>        </span><span style="color:#616e88;">// The new `Bag` is constructed from coherent data.
+</span><span>        </span><span style="color:#81a1c1;">let</span><span> new_bag </span><span style="color:#81a1c1;">=</span><span> Bag {
+</span><span>            content</span><span style="color:#eceff4;">:</span><span> new_content</span><span style="color:#eceff4;">,
+</span><span>            peanut_count</span><span style="color:#eceff4;">:</span><span> new_peanut_count</span><span style="color:#eceff4;">,
+</span><span>        }</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>        </span><span style="color:#81a1c1;">return</span><span> new_bag</span><span style="color:#eceff4;">;
+</span><span>    } </span><span style="color:#81a1c1;">else </span><span>{
+</span><span>        </span><span style="color:#616e88;">// **Not** mutating a field is explicit.
+</span><span>        </span><span style="color:#81a1c1;">let</span><span> new_bag </span><span style="color:#81a1c1;">=</span><span> Bag {
+</span><span>            content</span><span style="color:#eceff4;">:</span><span> old_content</span><span style="color:#eceff4;">,
+</span><span>            peanut_count</span><span style="color:#eceff4;">:</span><span> old_peanut_count</span><span style="color:#eceff4;">,
+</span><span>        }</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>        </span><span style="color:#81a1c1;">return</span><span> new_bag</span><span style="color:#eceff4;">;
+</span><span>    }
+</span><span>}
+</span></code></pre>
+<h1 id="structs-are-not-collections-of-variables"><a href="#structs-are-not-collections-of-variables" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Structs are not collections of variables</h1>
+<p>Notice that in the code above <strong>variables</strong> <code>content</code> and <code>peanut_count</code> are mutated independently anyways:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">add_nut</span><span>(</span><span style="color:#81a1c1;">mut </span><span>content</span><span style="color:#eceff4;">: </span><span style="color:#8fbcbb;">Vec</span><span>&lt;Nut&gt;, nut</span><span style="color:#eceff4;">:</span><span> Nut) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#8fbcbb;">Vec</span><span>&lt;Nut&gt; {
+</span><span>  </span><span style="color:#616e88;">// Warning: `content` is mutated here independently from `peanut_count`!
+</span><span>
+</span><span>  </span><span style="color:#616e88;">// It&#39;s okay, because `Vec&lt;Nut&gt;` by itself makes no guarantees
+</span><span>  </span><span style="color:#616e88;">// about `peanut_count`.
+</span><span>
+</span><span>  content</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">push</span><span>(nut)</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>  content
+</span><span>}
+</span></code></pre>
+<p>But there's a real difference between mutating independent variables and fields of a struct:
+Structs are not just collections of variables. They are collections of variables <strong>plus guarantees
+about them</strong>. Whenever you violate such guarantee, you make it easier to introduce bugs, whether
+you expose this violation or not.</p>
+
+</div>
+
+
+            
+<div class="footer">
+    <a href="https:&#x2F;&#x2F;micouy.github.io">home</a>
+    <a href="https:&#x2F;&#x2F;github.com&#x2F;micouy">github</a>
+</div>
+
+
+<!-- comments -->
+<script src="https://utteranc.es/client.js"
+        repo="micouy/micouy.github.io"
+        issue-term="pathname"
+        label="comment-section"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+
+
+        </div>
+    </body>
+</html>

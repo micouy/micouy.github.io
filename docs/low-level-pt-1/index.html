@@ -103,8 +103,7 @@ Its purpose is to load larger kernels.</p>
 <p>The first step was loading my program from hard disk to memory.
 I took a naive approach. I compiled the bootloader and my program.
 I concatenated both binaries together, one right after the other, to form one file, like this:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cat</span><span style="color:#c0c5ce;"> bootloader.bin hello_rust.bin &gt; img
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#88c0d0;">cat</span><span> bootloader.bin hello_rust.bin </span><span style="color:#81a1c1;">&gt;</span><span> img
 </span></code></pre>
 <p>I didn't care if I could actually execute Rust code, I just wanted
 to test if I can load it. I added necessary code to my bootloader
@@ -115,61 +114,60 @@ a much simpler bootloader. I first tried to write it myself but after a while
 I just grabbed some code from Stack Overflow and added a simple error message in case
 the BIOS routine failed. After a couple of tries I finally managed to create
 a two-stage bootloader in a single Assembly program. It worked something like this:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#8fa1b3;">org </span><span style="color:#d08770;">0x7c00
-</span><span style="color:#8fa1b3;">first_stage:
-</span><span style="color:#65737e;">    ; load second stage.
-
-    ; `dl` register specifies which disk to load
-    ; data from. it is set by the CPU to the same device
-    ; the bootloader was loaded from.
-
-    ; set `es` to 0x7e0 and `bx` to 0x0.
-    
-    ; the routine will load data to `(es &lt;&lt; 4) | bx`
-    ; or 0x7e00.
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ax</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x7e0
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">es</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">ax
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">bx</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0
-
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">al</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x1</span><span style="color:#65737e;"> ; # of sectors to read.
-    
-    </span><span style="color:#b48ead;">push </span><span style="color:#bf616a;">ax</span><span style="color:#65737e;"> ; store `al` for later.
-
-    ; specify where the data is stored on the disk.
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ch</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0</span><span style="color:#65737e;"> ; cylinder.
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">dh</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x0</span><span style="color:#65737e;"> ; head.
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">cl</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x2</span><span style="color:#65737e;"> ; sector right after bootloader.
-
-    ; `int 0x13` with `ah` set to 0x2
-    ; loads data from disk to memory.
-    </span><span style="color:#b48ead;">mov </span><span style="color:#bf616a;">ah</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">0x2
-    </span><span style="color:#b48ead;">int </span><span style="color:#d08770;">0x13
-
-    </span><span style="color:#b48ead;">pop </span><span style="color:#bf616a;">bx</span><span style="color:#65737e;"> ; restore `al` to `bl`.
-
-    ; check whether the number of sectors read is correct.
-    </span><span style="color:#b48ead;">cmp </span><span style="color:#bf616a;">al</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">bl
-    </span><span style="color:#b48ead;">jne </span><span style="color:#8fa1b3;">error
-       
-    </span><span style="color:#b48ead;">jmp </span><span style="color:#d08770;">0x7e00</span><span style="color:#65737e;"> ; jump to second stage.
-
-</span><span style="color:#8fa1b3;">error:
-</span><span style="color:#65737e;">    ; print error message, then halt.
-    </span><span style="color:#b48ead;">jmp </span><span style="color:#8fa1b3;">$
-
-</span><span style="color:#65737e;">; fill the rest of the first sector with zeros.
-; it&#39;s 510 and not 512 because the last two bytes
-; are 0xaa and 0x55 - the &#39;magic&#39; number.
-</span><span style="color:#96b5b4;">times </span><span style="color:#d08770;">510</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">($</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">$$) </span><span style="color:#96b5b4;">db </span><span style="color:#d08770;">0
-</span><span style="color:#8fa1b3;">dw </span><span style="color:#d08770;">0xaa55
-
-</span><span style="color:#8fa1b3;">second_stage:
-</span><span style="color:#65737e;">    ; do something, then halt.
-    </span><span style="color:#b48ead;">jmp </span><span style="color:#8fa1b3;">$
-
-</span><span style="color:#65737e;">; padding to fill the rest of the second sector with zeros.
-</span><span style="color:#96b5b4;">times </span><span style="color:#d08770;">1024</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">($</span><span style="color:#c0c5ce;">-</span><span style="color:#8fa1b3;">$$) </span><span style="color:#96b5b4;">db </span><span style="color:#d08770;">0
+<pre data-lang="nasm" style="background-color:#2e3440;color:#d8dee9;" class="language-nasm "><code class="language-nasm" data-lang="nasm"><span style="color:#88c0d0;">org </span><span>0x7c00
+</span><span style="color:#88c0d0;">first_stage:
+</span><span style="color:#616e88;">    ; load second stage.
+</span><span>
+</span><span style="color:#616e88;">    ; `dl` register specifies which disk to load
+</span><span style="color:#616e88;">    ; data from. it is set by the CPU to the same device
+</span><span style="color:#616e88;">    ; the bootloader was loaded from.
+</span><span>
+</span><span style="color:#616e88;">    ; set `es` to 0x7e0 and `bx` to 0x0.
+</span><span style="color:#88c0d0;">    
+</span><span style="color:#616e88;">    ; the routine will load data to `(es &lt;&lt; 4) | bx`
+</span><span style="color:#616e88;">    ; or 0x7e00.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>ax, 0x7e0
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>es, ax
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>bx, 0x0
+</span><span>
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>al, 0x1</span><span style="color:#616e88;"> ; # of sectors to read.
+</span><span style="color:#88c0d0;">    
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">push </span><span>ax</span><span style="color:#616e88;"> ; store `al` for later.
+</span><span>
+</span><span style="color:#616e88;">    ; specify where the data is stored on the disk.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>ch, 0x0</span><span style="color:#616e88;"> ; cylinder.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>dh, 0x0</span><span style="color:#616e88;"> ; head.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>cl, 0x2</span><span style="color:#616e88;"> ; sector right after bootloader.
+</span><span>
+</span><span style="color:#616e88;">    ; `int 0x13` with `ah` set to 0x2
+</span><span style="color:#616e88;">    ; loads data from disk to memory.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">mov </span><span>ah, 0x2
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">int </span><span>0x13
+</span><span>
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">pop </span><span>bx</span><span style="color:#616e88;"> ; restore `al` to `bl`.
+</span><span>
+</span><span style="color:#616e88;">    ; check whether the number of sectors read is correct.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">cmp </span><span>al, bl
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">jne </span><span style="color:#88c0d0;">error
+</span><span style="color:#88c0d0;">       
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">jmp </span><span>0x7e00</span><span style="color:#616e88;"> ; jump to second stage.
+</span><span>
+</span><span style="color:#88c0d0;">error:
+</span><span style="color:#616e88;">    ; print error message, then halt.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">jmp </span><span style="color:#88c0d0;">$
+</span><span>
+</span><span style="color:#616e88;">; fill the rest of the first sector with zeros.
+</span><span style="color:#616e88;">; it&#39;s 510 and not 512 because the last two bytes
+</span><span style="color:#616e88;">; are 0xaa and 0x55 - the &#39;magic&#39; number.
+</span><span style="color:#88c0d0;">times </span><span>510-</span><span style="color:#88c0d0;">($</span><span>-</span><span style="color:#88c0d0;">$$) db </span><span>0
+</span><span style="color:#88c0d0;">dw </span><span>0xaa55
+</span><span>
+</span><span style="color:#88c0d0;">second_stage:
+</span><span style="color:#616e88;">    ; do something, then halt.
+</span><span style="color:#88c0d0;">    </span><span style="color:#81a1c1;">jmp </span><span style="color:#88c0d0;">$
+</span><span>
+</span><span style="color:#616e88;">; padding to fill the rest of the second sector with zeros.
+</span><span style="color:#88c0d0;">times </span><span>1024-</span><span style="color:#88c0d0;">($</span><span>-</span><span style="color:#88c0d0;">$$) db </span><span>0
 </span></code></pre>
 <p>This way I didn't have to link multiple files and NASM managed the padding of sectors
 for me. The code correctly compiled to a single file which was exactly 1024 bytes long -
@@ -227,27 +225,25 @@ worked in linker scripts. I also got something wrong about the <code>AT()</code>
 You can see the <a href="https://www.reddit.com/r/osdev/comments/hhd7uj/linking_bootloader_with_second_stage/">thread</a>
 I started on Reddit.</p>
 <p>Eventually I came up with such script:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#c0c5ce;">SECTIONS {
-    .boot 0x7c00 : {
-        *(.boot.*);
-    }
-
-    .hello_rust 0x7e00 : {
-        *(.rust.*);
-        . = ALIGN(512);
-    } = 0xdeadc0de
-
-    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
-}
+<pre data-lang="plaintext" style="background-color:#2e3440;color:#d8dee9;" class="language-plaintext "><code class="language-plaintext" data-lang="plaintext"><span>SECTIONS {
+</span><span>    .boot 0x7c00 : {
+</span><span>        *(.boot.*);
+</span><span>    }
+</span><span>
+</span><span>    .hello_rust 0x7e00 : {
+</span><span>        *(.rust.*);
+</span><span>        . = ALIGN(512);
+</span><span>    } = 0xdeadc0de
+</span><span>
+</span><span>    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
+</span><span>}
 </span></code></pre>
 <p>Notice that I put all sections beginning with <code>.boot</code> in the first 512 bytes
 and all sections beginning with <code>.rust</code> after 0x7e00. In order to make
 it work I have to rename all sections in the ELF file emitted by <code>rustc</code>
 so that they all start with a prefix. I do it using <code>objcopy</code>
 (in some linkers this option is called <code>--prefix-sections</code>):</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">objcopy</span><span style="color:#c0c5ce;"> hello_rust.o hello_rust_prefixed.o</span><span style="color:#bf616a;"> --prefix-alloc-sections</span><span style="color:#c0c5ce;">=&#39;</span><span style="color:#a3be8c;">.rust</span><span style="color:#c0c5ce;">&#39;
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#88c0d0;">objcopy</span><span> hello_rust.o hello_rust_prefixed.o --prefix-alloc-sections</span><span style="color:#81a1c1;">=</span><span style="color:#a3be8c;">&#39;.rust&#39;
 </span></code></pre>
 <p>The there are two tricks in this script. The first one is that I align
 the end of the <code>.rust</code> section to the nearest sector boundary with <code>. = ALIGN(512)</code>.
@@ -267,19 +263,18 @@ for such tasks.</p>
 <hr />
 <p><strong>Note</strong>: I still don't understand why I can't just 'unpack' whole files into
 sections <code>.boot</code> and <code>.hello_rust</code> like this:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#c0c5ce;">SECTIONS {
-    .boot 0x7c00 : {
-        boot.o;
-    }
-
-    .hello_rust 0x7e00 : {
-        hello_rust.o;
-        . = ALIGN(512);
-    } = 0xdeadc0de
-
-    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
-}
+<pre data-lang="plaintext" style="background-color:#2e3440;color:#d8dee9;" class="language-plaintext "><code class="language-plaintext" data-lang="plaintext"><span>SECTIONS {
+</span><span>    .boot 0x7c00 : {
+</span><span>        boot.o;
+</span><span>    }
+</span><span>
+</span><span>    .hello_rust 0x7e00 : {
+</span><span>        hello_rust.o;
+</span><span>        . = ALIGN(512);
+</span><span>    } = 0xdeadc0de
+</span><span>
+</span><span>    SECOND_STAGE_LENGTH = ((. - ADDR(.hello_rust)) &gt;&gt; 9);
+</span><span>}
 </span></code></pre>
 <p>The binary produced by the linker is not even 1024 bytes long and there's no
 <code>0xdeadc0de</code> at the end. After trying to run QEMU it just keeps rebooting
@@ -303,57 +298,52 @@ prints <code>HR</code> on screen. To set up the project
 and compile it properly I followed the instructions
 on <a href="https://os.phil-opp.com/">Oppermann's blog</a>.</p>
 <p><code>main.rs</code> looks like this:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#c0c5ce;">#![</span><span style="color:#bf616a;">no_std</span><span style="color:#c0c5ce;">]
-#![</span><span style="color:#bf616a;">no_main</span><span style="color:#c0c5ce;">]
-
-</span><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">core::panic::PanicInfo;
-
-#[</span><span style="color:#bf616a;">panic_handler</span><span style="color:#c0c5ce;">]
-</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">panic</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">_info</span><span style="color:#c0c5ce;">: &amp;PanicInfo) -&gt; ! {
-    </span><span style="color:#b48ead;">loop </span><span style="color:#c0c5ce;">{}
-}
-
-#[</span><span style="color:#bf616a;">no_mangle</span><span style="color:#c0c5ce;">]
-</span><span style="color:#b48ead;">pub extern </span><span style="color:#c0c5ce;">&quot;</span><span style="color:#a3be8c;">C</span><span style="color:#c0c5ce;">&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">_start</span><span style="color:#c0c5ce;">() -&gt; ! {
-    </span><span style="color:#65737e;">// print &quot;HR&quot; in the top left corner
-
-    </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> vga: </span><span style="color:#b48ead;">*mut u16 </span><span style="color:#c0c5ce;">= </span><span style="color:#d08770;">0xb8000 </span><span style="color:#c0c5ce;">as </span><span style="color:#b48ead;">*mut u16</span><span style="color:#c0c5ce;">;
-    </span><span style="color:#65737e;">// red on black
-    </span><span style="color:#b48ead;">let</span><span style="color:#c0c5ce;"> style = (</span><span style="color:#d08770;">0x0 </span><span style="color:#c0c5ce;">&lt;&lt; </span><span style="color:#d08770;">4 </span><span style="color:#c0c5ce;">| </span><span style="color:#d08770;">0x4</span><span style="color:#c0c5ce;">);
-    </span><span style="color:#b48ead;">unsafe </span><span style="color:#c0c5ce;">{
-        *vga = style &lt;&lt; </span><span style="color:#d08770;">8 </span><span style="color:#c0c5ce;">| (&#39;</span><span style="color:#a3be8c;">H</span><span style="color:#c0c5ce;">&#39; as </span><span style="color:#b48ead;">u16 </span><span style="color:#c0c5ce;">&amp; </span><span style="color:#d08770;">0xff</span><span style="color:#c0c5ce;">);
-        vga = vga.</span><span style="color:#96b5b4;">offset</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">);
-        *vga = style &lt;&lt; </span><span style="color:#d08770;">8 </span><span style="color:#c0c5ce;">| (&#39;</span><span style="color:#a3be8c;">R</span><span style="color:#c0c5ce;">&#39; as </span><span style="color:#b48ead;">u16 </span><span style="color:#c0c5ce;">&amp; </span><span style="color:#d08770;">0xff</span><span style="color:#c0c5ce;">);
-    }
-
-    </span><span style="color:#b48ead;">loop </span><span style="color:#c0c5ce;">{}
-}
+<pre data-lang="Rust" style="background-color:#2e3440;color:#d8dee9;" class="language-Rust "><code class="language-Rust" data-lang="Rust"><span>#![no_std]
+</span><span>#![no_main]
+</span><span>
+</span><span style="color:#81a1c1;">use </span><span>core</span><span style="color:#81a1c1;">::</span><span>panic</span><span style="color:#81a1c1;">::</span><span>PanicInfo</span><span style="color:#eceff4;">;
+</span><span>
+</span><span>#[panic_handler]
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">panic</span><span>(_info</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>PanicInfo) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">! </span><span>{
+</span><span>    </span><span style="color:#81a1c1;">loop </span><span>{}
+</span><span>}
+</span><span>
+</span><span>#[no_mangle]
+</span><span style="color:#81a1c1;">pub extern </span><span style="color:#a3be8c;">&quot;C&quot; </span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">_start</span><span>() </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">! </span><span>{
+</span><span>    </span><span style="color:#616e88;">// print &quot;HR&quot; in the top left corner
+</span><span>
+</span><span>    </span><span style="color:#81a1c1;">let mut</span><span> vga</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">*mut u16 = </span><span style="color:#b48ead;">0xb8000 </span><span style="color:#81a1c1;">as *mut u16</span><span style="color:#eceff4;">;
+</span><span>    </span><span style="color:#616e88;">// red on black
+</span><span>    </span><span style="color:#81a1c1;">let</span><span> style </span><span style="color:#81a1c1;">= </span><span>(</span><span style="color:#b48ead;">0x0 </span><span style="color:#81a1c1;">&lt;&lt; </span><span style="color:#b48ead;">4 </span><span style="color:#81a1c1;">| </span><span style="color:#b48ead;">0x4</span><span>)</span><span style="color:#eceff4;">;
+</span><span>    </span><span style="color:#81a1c1;">unsafe </span><span>{
+</span><span>        </span><span style="color:#81a1c1;">*</span><span>vga </span><span style="color:#81a1c1;">=</span><span> style </span><span style="color:#81a1c1;">&lt;&lt; </span><span style="color:#b48ead;">8 </span><span style="color:#81a1c1;">| </span><span>(</span><span style="color:#a3be8c;">&#39;H&#39; </span><span style="color:#81a1c1;">as u16 &amp; </span><span style="color:#b48ead;">0xff</span><span>)</span><span style="color:#eceff4;">;
+</span><span>        vga </span><span style="color:#81a1c1;">=</span><span> vga</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">offset</span><span>(</span><span style="color:#b48ead;">1</span><span>)</span><span style="color:#eceff4;">;
+</span><span>        </span><span style="color:#81a1c1;">*</span><span>vga </span><span style="color:#81a1c1;">=</span><span> style </span><span style="color:#81a1c1;">&lt;&lt; </span><span style="color:#b48ead;">8 </span><span style="color:#81a1c1;">| </span><span>(</span><span style="color:#a3be8c;">&#39;R&#39; </span><span style="color:#81a1c1;">as u16 &amp; </span><span style="color:#b48ead;">0xff</span><span>)</span><span style="color:#eceff4;">;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style="color:#81a1c1;">loop </span><span>{}
+</span><span>}
 </span></code></pre>
 <p>I use <code>cargo-xbuild</code> (it allows you to compile the <code>core</code> library
 to a specified target) to emit an object file that would later be linked
 with my bootloader:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cargo</span><span style="color:#c0c5ce;"> xrustc</span><span style="color:#bf616a;"> --release</span><span style="color:#c0c5ce;"> -- --emit obj=hello_rust.o
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#88c0d0;">cargo</span><span> xrustc --release</span><span style="color:#81a1c1;"> --</span><span> --emit obj=hello_rust.o
 </span></code></pre>
 <p>I've heard you can also do it without <code>cargo-xbuild</code> but I haven't tested it:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cargo</span><span style="color:#c0c5ce;"> rustc</span><span style="color:#bf616a;"> -Z</span><span style="color:#c0c5ce;"> build-std=core -- --emit obj=hello_rust.o
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#88c0d0;">cargo</span><span> rustc -Z build-std=core</span><span style="color:#81a1c1;"> --</span><span> --emit obj=hello_rust.o
 </span></code></pre>
 <p>Then I add the prefix to sections in <code>hello_rust.o</code> and link it with the bootloader:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#65737e;"># add prefix
-</span><span style="color:#bf616a;">objcopy</span><span style="color:#c0c5ce;"> hello_rust.o hello_rust_prefixed.o</span><span style="color:#bf616a;"> --prefix-alloc-sections</span><span style="color:#c0c5ce;">=&#39;</span><span style="color:#a3be8c;">.rust</span><span style="color:#c0c5ce;">&#39;
-
-</span><span style="color:#65737e;"># link
-</span><span style="color:#c0c5ce;">lld hello_rust_prefixed.o boot.o</span><span style="color:#bf616a;"> -T</span><span style="color:#c0c5ce;"> script.ld</span><span style="color:#bf616a;"> --oformat</span><span style="color:#c0c5ce;"> binary</span><span style="color:#bf616a;"> -o</span><span style="color:#c0c5ce;"> img.bin
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#616e88;"># add prefix
+</span><span style="color:#88c0d0;">objcopy</span><span> hello_rust.o hello_rust_prefixed.o --prefix-alloc-sections</span><span style="color:#81a1c1;">=</span><span style="color:#a3be8c;">&#39;.rust&#39;
+</span><span>
+</span><span style="color:#616e88;"># link
+</span><span style="color:#88c0d0;">lld</span><span> hello_rust_prefixed.o boot.o -T script.ld --oformat binary -o img.bin
 </span></code></pre>
 <p>Finally I run the emulator:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">qemu-system-x86_64 -drive</span><span style="color:#c0c5ce;"> format=raw,file=img.bin
+<pre data-lang="bash" style="background-color:#2e3440;color:#d8dee9;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#88c0d0;">qemu-system-x86_64</span><span> -drive format=raw,file=img.bin
 </span></code></pre>
 <p>The result:</p>
-<p><img src="https://micouy.github.io/blog/low-level-pt-1/hello-rust-qemu.png" alt="QEMU screenshot" /></p>
+<p><img src="hello-rust-qemu.png" alt="QEMU screenshot" /></p>
 <p>Thanks for reading!</p>
 <p><em>EDIT: thanks to my gf sorry i forgot</em></p>
 

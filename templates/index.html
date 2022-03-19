@@ -44,11 +44,9 @@
               <div class="pages">
                 {% for page in section.pages %}
                   <div class="page">
-                    <h1 class="page-title">
-                      <a href="{{ page.path }}">
-                        {{ page.title }}
-                      </a>
-                    </h1>
+                    <a class="page-title" href="{{ page.path }}">
+                      {{ page.title }}
+                    </a>
                   </div>
                 {% endfor %}
               </div>

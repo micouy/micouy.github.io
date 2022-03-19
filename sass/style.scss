@@ -3,10 +3,14 @@
 $font-family: Arial;
 $mono-font: Courier;
 $text-color: black;
-$link-unvisited: yellowgreen;
+$link-unvisited: #52ac0a;
 $link-visited: magenta;
 
 $breakpoints: (medium: 560px, desktop: 1024px);
+
+* {
+    box-sizing: border-box;
+}
 
 body {
     padding: 5vw 2vw;
@@ -69,22 +73,11 @@ p {
     }
 }
 
-code {
-    background: #2b303b;
-    color: white;
-    padding: 0.2rem;
-    border-radius: 0.2rem;
-    display: inline;
-    font-weight: normal;
+blockquote {
+    border-left: 0.3rem black solid;
+    padding: 0 0.5rem;
 }
 
-pre > code {
-    background: none;
-    color: none;
-    padding: none;
-    border-radius: none;
-    display: block;
-}
 
 a > code {
     color: $link-unvisited;
@@ -94,6 +87,33 @@ a > code {
 a > code:visited {
     color: $link-visited;
     text-decoration: underline $link-visited;
+}
+
+code {
+    white-space: nowrap;
+    background: none;
+    border-radius: 0.3rem;
+    border: 0.1rem black solid;
+    padding: 0.1rem 0.3rem;
+    color: black;
+    vertical-align: text-top;
+    font-weight: bold;
+}
+
+pre > code {
+    background: #2b303b;
+    padding: 0.2rem;
+    border-radius: 0.2rem;
+    font-weight: normal;
+
+    background: none;
+    color: inherit;
+    padding: none;
+    border-radius: none;
+    display: block;
+    border: none;
+    white-space: unset;
+    vertical-align: unset;
 }
 
 p, li {

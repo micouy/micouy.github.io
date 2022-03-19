@@ -44,9 +44,8 @@ Working with terminal</h3>
 I like <a href="https://github.com/mawww/kakoune"><code>Kakoune</code></a> because it treats movement also as a selection.
 You don't need plugins or an IDE. The compiler and the code editor work much better separately.</p>
 <p>Use <code>tmux</code> to manage sessions and tabs. Create a new session for each project like this:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#65737e;"># Launching a new session from your terminal.
-</span><span style="color:#bf616a;">tmux </span><span style="color:#c0c5ce;">new </span><span style="color:#bf616a;">-s </span><span style="color:#c0c5ce;">project-name
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#616e88;"># Launching a new session from your terminal.
+</span><span style="color:#88c0d0;">tmux </span><span>new -s project-name
 </span></code></pre>
 <p>or, if you're already in <code>tmux</code>: <code>Ctrl-b</code>, then type <code>:new-session -s project-name</code>. This way you'll have
 only one window with a couple of tabs on your screen. Switch between projects with <code>Ctrl-b</code>,
@@ -55,9 +54,8 @@ then <code>s</code>.</p>
 <code>cargo watch</code></h1>
 <p>Instead of starting the build process manually, launch <a href="https://github.com/passcod/cargo-watch"><code>cargo watch</code></a>
 in a separate tab:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#65737e;"># Run it in your project&#39;s root dir.
-</span><span style="color:#bf616a;">cargo </span><span style="color:#c0c5ce;">watch </span><span style="color:#bf616a;">-x </span><span style="color:#c0c5ce;">build
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#616e88;"># Run it in your project&#39;s root dir.
+</span><span style="color:#88c0d0;">cargo </span><span>watch -x build
 </span></code></pre>
 <p>This process will execute a command each time you change and save a file in your project
 dir. <a href="https://github.com/passcod/cargo-watch"><code>cargo watch</code></a> lets you specify the command
@@ -65,22 +63,20 @@ it'll execute - <code>fmt</code>, <code>clippy</code>, etc.</p>
 <h1 id="out-dir"><a href="#out-dir" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
 <code>--out-dir</code></h1>
 <p>Dump <code>cargo run</code> and use this command:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#65737e;"># Make an alias if you don&#39;t want to type it each time!
-</span><span style="color:#bf616a;">cargo </span><span style="color:#c0c5ce;">build </span><span style="color:#bf616a;">-Z </span><span style="color:#c0c5ce;">unstable-options </span><span style="color:#bf616a;">--out-dir </span><span style="color:#c0c5ce;">$</span><span style="color:#bf616a;">my</span><span style="color:#c0c5ce;">-bin-folder
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#616e88;"># Make an alias if you don&#39;t want to type it each time!
+</span><span style="color:#88c0d0;">cargo </span><span>build -Z unstable-options --out-dir </span><span style="color:#81a1c1;">$</span><span>my-bin-folder
 </span></code></pre>
 <p>Pass a literal path in place of <code>$my-bin-folder</code> or make it an env variable. Just
 make sure it's in your <code>$PATH</code>.</p>
 <p>It's especially useful when testing binaries in various directories. Without it, you'd have
 to type something like <code>my-project-path/target/debug/my-app</code> or move the binary manually.
 It works great together with <code>cargo watch</code>:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cargo </span><span style="color:#c0c5ce;">watch </span><span style="color:#bf616a;">-x </span><span style="color:#c0c5ce;">&#39;</span><span style="color:#a3be8c;">build -Z unstable-options --out-dir $my-bin-folder</span><span style="color:#c0c5ce;">&#39;
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#88c0d0;">cargo </span><span>watch -x </span><span style="color:#a3be8c;">&#39;build -Z unstable-options --out-dir $my-bin-folder&#39;
 </span></code></pre>
 <p>Now you can run your binary from anywhere just like any other command:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#c0c5ce;">$ my-app
-</span></code></pre><h1 id="flow"><a href="#flow" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+<pre style="background-color:#2e3440;color:#d8dee9;"><code><span>$ my-app
+</span></code></pre>
+<h1 id="flow"><a href="#flow" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
 ~~~flow~~~</h1>
 <p><strong>Step 1.</strong> Create a messy prototype in <code>main.rs</code> on branch <code>proto/name-of-your-idea</code>. Have a rule that code in branches <code>proto/*</code> does not have to be beautiful or 100% safe.
 This will free you from worrying about how 'pure' your repo is.</p>
@@ -88,41 +84,38 @@ This will free you from worrying about how 'pure' your repo is.</p>
 code related to that module from <code>main.rs</code> there. Copy-paste all imports from <code>main.rs</code> there as
 well - you'll delete unnecessary ones later.</p>
 <p>Then, add this to your <code>Cargo.toml</code>...</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#c0c5ce;">[package]
-</span><span style="color:#bf616a;">name </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">myapp</span><span style="color:#c0c5ce;">&quot;
-</span><span style="color:#65737e;"># ...
-
-</span><span style="color:#c0c5ce;">[[bin]]
-</span><span style="color:#bf616a;">name </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">myapp</span><span style="color:#c0c5ce;">&quot;
-</span><span style="color:#bf616a;">path </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">src/main.rs</span><span style="color:#c0c5ce;">&quot;
-
-[[bin]]
-</span><span style="color:#bf616a;">name </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">myapp-mymodule</span><span style="color:#c0c5ce;">&quot;
-</span><span style="color:#bf616a;">path </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">src/my-module/mod.rs</span><span style="color:#c0c5ce;">&quot;
+<pre data-lang="toml" style="background-color:#2e3440;color:#d8dee9;" class="language-toml "><code class="language-toml" data-lang="toml"><span>[package]
+</span><span style="color:#81a1c1;">name </span><span>= </span><span style="color:#a3be8c;">&quot;myapp&quot;
+</span><span style="color:#616e88;"># ...
+</span><span>
+</span><span>[[bin]]
+</span><span style="color:#81a1c1;">name </span><span>= </span><span style="color:#a3be8c;">&quot;myapp&quot;
+</span><span style="color:#81a1c1;">path </span><span>= </span><span style="color:#a3be8c;">&quot;src/main.rs&quot;
+</span><span>
+</span><span>[[bin]]
+</span><span style="color:#81a1c1;">name </span><span>= </span><span style="color:#a3be8c;">&quot;myapp-mymodule&quot;
+</span><span style="color:#81a1c1;">path </span><span>= </span><span style="color:#a3be8c;">&quot;src/my-module/mod.rs&quot;
 </span></code></pre>
 <p>...change the build/check command...</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cargo </span><span style="color:#c0c5ce;">watch </span><span style="color:#bf616a;">-x </span><span style="color:#c0c5ce;">&#39;</span><span style="color:#a3be8c;">build --bin myapp-mymodule</span><span style="color:#c0c5ce;">&#39;
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#88c0d0;">cargo </span><span>watch -x </span><span style="color:#a3be8c;">&#39;build --bin myapp-mymodule&#39;
 </span></code></pre>
 <p><span style="color: red;"><strong>...and BOOM! Now you can break your module's API without having to fix errors in the rest
 of your code!</strong></span> It's amazing how much flexibility it gives you - the module becomes the root of
 your project and no code referencing it gets compiled. You don't have to create a separate project or set up a workspace or comment
 anything out - It Just Works™. You can switch between your module and the app just by setting the target binary.
 (I believe you don't even need to delete <code>fn main()</code> and the imports from <code>mod.rs</code>.)</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#65737e;">// In src/my-module/mod.rs.
-
-// If you need to import a module that is not inside
-// this mod&#39;s directory, add a `#[path = ...]` attribute.
-
-</span><span style="color:#c0c5ce;">#[</span><span style="color:#bf616a;">path </span><span style="color:#c0c5ce;">= &quot;</span><span style="color:#a3be8c;">../custom-print/mod.rs</span><span style="color:#c0c5ce;">&quot;] </span><span style="color:#65737e;">// Importing src/custom-print/mod.rs.
-</span><span style="color:#b48ead;">mod </span><span style="color:#c0c5ce;">custom_print;
-
-</span><span style="color:#65737e;">// `my-module`&#39;s own main... what?!
-</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span style="color:#c0c5ce;">() {
-    custom_print::print(&quot;</span><span style="color:#a3be8c;">heyyy</span><span style="color:#c0c5ce;">&quot;);
-}
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#616e88;">// In src/my-module/mod.rs.
+</span><span>
+</span><span style="color:#616e88;">// If you need to import a module that is not inside
+</span><span style="color:#616e88;">// this mod&#39;s directory, add a `#[path = ...]` attribute.
+</span><span>
+</span><span>#[path </span><span style="color:#81a1c1;">= </span><span style="color:#a3be8c;">&quot;../custom-print/mod.rs&quot;</span><span>] </span><span style="color:#616e88;">// Importing src/custom-print/mod.rs.
+</span><span style="color:#81a1c1;">mod </span><span>custom_print</span><span style="color:#eceff4;">;
+</span><span>
+</span><span style="color:#616e88;">// `my-module`&#39;s own main... what?!
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">main</span><span>() {
+</span><span>    custom_print</span><span style="color:#81a1c1;">::</span><span>print(</span><span style="color:#a3be8c;">&quot;heyyy&quot;</span><span>)</span><span style="color:#eceff4;">;
+</span><span>}
 </span></code></pre>
 <p><strong>Step 3.</strong> Polish the module, cover the edge cases and test it. <strong>Only after you're done switch back to your default
 compilation target and fix all errors you've generated.</strong></p>
@@ -134,12 +127,11 @@ Distributing binaries</h1>
 binaries using <a href="https://docs.github.com/en/actions">GitHub Actions</a>. I don't love programming in YAML or importing workflows, but after I've
 set it up, it's not painful at all.</p>
 <p>Add a branch named <code>release</code> and set up your workflow so that compiles the project on each push to that branch:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#d08770;">on</span><span style="color:#c0c5ce;">:
-  </span><span style="color:#bf616a;">push</span><span style="color:#c0c5ce;">:
-    </span><span style="color:#bf616a;">branches</span><span style="color:#c0c5ce;">: [</span><span style="color:#a3be8c;">release</span><span style="color:#c0c5ce;">]
-
-</span><span style="color:#65737e;"># ...
+<pre data-lang="yaml" style="background-color:#2e3440;color:#d8dee9;" class="language-yaml "><code class="language-yaml" data-lang="yaml"><span style="color:#81a1c1;">on</span><span style="color:#eceff4;">:
+</span><span>  </span><span style="color:#8fbcbb;">push</span><span style="color:#eceff4;">:
+</span><span>    </span><span style="color:#8fbcbb;">branches</span><span style="color:#eceff4;">: </span><span>[</span><span style="color:#a3be8c;">release</span><span>]
+</span><span>
+</span><span style="color:#616e88;"># ...
 </span></code></pre>
 <p>I discovered having this separate branch is much better than only building tags (I don't want to push a tag
 to add a new target or fix a tiny bug) or building on each push to <code>master</code> (I don't want to recompile on
@@ -155,16 +147,15 @@ available at <a href="https://docs.rs/releases/search?query=&amp;i-am-feeling-lu
 dependencies. Just make sure you've added them to your <code>Cargo.toml</code> before going offline.
 After they're cached on your computer you can open each package's documentation by running
 the command below in your project's directory.</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">cargo </span><span style="color:#c0c5ce;">doc </span><span style="color:#bf616a;">--package </span><span style="color:#c0c5ce;">somepackage </span><span style="color:#bf616a;">--offline --no-deps --open
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#88c0d0;">cargo </span><span>doc --package somepackage --offline --no-deps --open
 </span></code></pre>
 <p>It will generate necessary HTML files and open the docs in your browser. <code>--offline</code> flag
 is there to make sure <code>cargo</code> won't try to access the docs online. You need to pass <code>--no-deps</code>
 to prevent <code>cargo</code> from documenting the chosen package's dependencies.</p>
 <p>To browse standard library's docs go to <a href="https://doc.rust-lang.org/stable/std/">docs.rs/std</a> or run:</p>
-<pre style="background-color:#2b303b;">
-<code><span style="color:#bf616a;">rustup </span><span style="color:#c0c5ce;">doc </span><span style="color:#bf616a;">--std
-</span></code></pre><h1 id="notepad-md"><a href="#notepad-md" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+<pre data-lang="fish" style="background-color:#2e3440;color:#d8dee9;" class="language-fish "><code class="language-fish" data-lang="fish"><span style="color:#88c0d0;">rustup </span><span>doc --std
+</span></code></pre>
+<h1 id="notepad-md"><a href="#notepad-md" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
 <code>NOTEPAD.md</code></h1>
 <p>Create a file called <code>NOTEPAD.md</code>. Add it to your <code>.gitignore</code>. Make it your scratchpad - write
 in a mix of English and your native language, curse, save useful links related to your project or
