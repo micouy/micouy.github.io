@@ -27,7 +27,7 @@
             
 <div class="header">
     <a href="https:&#x2F;&#x2F;micouy.github.io">home</a>
-    <h1 class="post-title">I still don’t understand the * operator in Rust</h1>
+    <h1 class="post-title">I do understand the * operator in Rust now (updated)</h1>
     
     <span class="post-date">2022-03-19</span>
     
@@ -36,7 +36,50 @@
 
             
 <div class="content">
-    <p>I’m trying to explain references to people beginning programming in Rust. Despite using Rust for a couple of years now, I’m unable to answer this question: Why can’t I just deref an immutable reference to access the owned data?</p>
+    <h1 id="update"><a href="#update" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Update</h1>
+<p><a href="https://micouy.github.io/rust-dereferencing/#original-post">See the original post below.</a></p>
+<p>I've <a href="https://www.reddit.com/r/rust/comments/thvc2e/i_still_dont_understand_the_operator_in_rust/?utm_source=share&amp;utm_medium=web2x&amp;context=3">linked this post on r/rust</a> and I've got a ton of helpful answers. I'll explain what I've learned.</p>
+<p>Before I had a vague idea that dereferencing means &quot;following the pointer (the reference) and trying to <strong>move</strong> the data from that location&quot;. That's why <code>f3</code> and <code>g2</code> confused me. I thought the reference operator surrounding the dereference somehow cancelled the move:</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#616e88;">// Doesn&#39;t compile.
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">g1</span><span>(thing</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>Thing) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#81a1c1;">let</span><span> tmp </span><span style="color:#81a1c1;">= *</span><span>thing</span><span style="color:#eceff4;">;
+</span><span style="color:#616e88;">//            ┗━ Move data out of `thing`.
+</span><span>
+</span><span>    </span><span style="color:#81a1c1;">&amp;</span><span>tmp</span><span style="color:#81a1c1;">.</span><span>field
+</span><span>}
+</span><span>
+</span><span style="color:#616e88;">// Compiles.
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">g2</span><span>(thing</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>Thing) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#81a1c1;">&amp;</span><span>(</span><span style="color:#81a1c1;">*</span><span>thing)</span><span style="color:#81a1c1;">.</span><span>field
+</span><span style="color:#616e88;">//  ┃ ┗━ Move data out of `thing`.
+</span><span style="color:#616e88;">//  ┗━━━ No actually cancel that.
+</span><span>}
+</span></code></pre>
+<p>But <a href="https://www.reddit.com/r/rust/comments/thvc2e/comment/i1a8zpw/?utm_source=share&amp;utm_medium=web2x&amp;context=3">u/kiujhytg2' comment</a> made me understand that it was not <code>*</code> which forced the move. Turns out there was another trickster hiding in plain sight...</p>
+<p>The <code>=</code> operator! It had not occured to me before but it all makes sense now.</p>
+<pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#616e88;">// Doesn&#39;t compile.
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">g1</span><span>(thing</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>Thing) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#81a1c1;">let</span><span> tmp </span><span style="color:#81a1c1;">= *</span><span>thing</span><span style="color:#eceff4;">;
+</span><span style="color:#616e88;">//          ┃ ┗━ Point directly to the referenced data.
+</span><span style="color:#616e88;">//          ┗━━━ Try to copy RHS&#39;s value, otherwise move it into `tmp`.
+</span><span>
+</span><span>    </span><span style="color:#81a1c1;">&amp;</span><span>tmp</span><span style="color:#81a1c1;">.</span><span>field
+</span><span>}
+</span><span>
+</span><span style="color:#616e88;">// Compiles.
+</span><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">g2</span><span>(thing</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>Thing) </span><span style="color:#eceff4;">-&gt; </span><span style="color:#81a1c1;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#81a1c1;">&amp;</span><span>(</span><span style="color:#81a1c1;">*</span><span>thing)</span><span style="color:#81a1c1;">.</span><span>field
+</span><span style="color:#616e88;">//  ┃ ┗━ Point directly to the referenced data.
+</span><span style="color:#616e88;">//  ┗━━━ Create a reference to the expression&#39;s value with a matching lifetime.
+</span><span>}
+</span></code></pre>
+<p>I'm still not sure how Rust determines what lifetime the newly created reference should have. It has been pointed out that <code>*thing</code> is not exactly just <code>Thing</code>. I guess Rust remembers that it's a dereferenced variable and referencing it again restores the original lifetime. Some of the comments pointed me to Rust Reference's <a href="https://doc.rust-lang.org/reference/expressions.html#place-expressions-and-value-expressions">chapter on Place Expressions and Value Expressions</a>. Perhaps it describes it better, I haven't had the time to read it yet.</p>
+<p>Thanks to all of the commenters, I appreciate the thorough explanations and a very helpful discussion. If you think I should file a PR somewhere to add this information to Rust's documentation, please let me know in the comments here or on Reddit.</p>
+<hr />
+<h1 id="original-post"><a href="#original-post" class="anchor-link"><img src="/favicon.png" class="inline-icon" alt="icon"/></a>
+Original post</h1>
+<p>I’m trying to explain references to people beginning programming in Rust. Despite using Rust for a couple of years now, I’m unable to answer this question: Why can’t I just deref an immutable reference to access the owned data?</p>
 <pre data-lang="rust" style="background-color:#2e3440;color:#d8dee9;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#81a1c1;">fn </span><span style="color:#88c0d0;">modify</span><span>(arg</span><span style="color:#eceff4;">: </span><span style="color:#81a1c1;">&amp;</span><span>String) {
 </span><span>    </span><span style="color:#81a1c1;">let mut</span><span> arg</span><span style="color:#eceff4;">: </span><span style="color:#8fbcbb;">String </span><span style="color:#81a1c1;">= *</span><span>arg</span><span style="color:#eceff4;">;
 </span><span>    arg</span><span style="color:#81a1c1;">.</span><span style="color:#88c0d0;">push_str</span><span>(</span><span style="color:#a3be8c;">&quot;smth&quot;</span><span>)</span><span style="color:#eceff4;">;
