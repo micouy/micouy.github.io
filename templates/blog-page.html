@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<a href="/">home</a>
+
+<h1 class="title">
+  {{ page.title }}
+</h1>
+
+<p class="subtitle"><strong>{{ page.date }}</strong></p>
+
+{{ page.content | safe }}
+
+<script src="https://utteranc.es/client.js"
+        repo="micouy/micouy.github.io"
+        issue-term="pathname"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+{% endblock content %}
