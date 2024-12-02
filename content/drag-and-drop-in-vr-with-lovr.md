@@ -39,8 +39,6 @@ LÖVR exposes a very simple API for tracking both hands and controllers. The who
 We can start by copying the [Tracked Hands](https://lovr.org/docs/Intro/Tracked_Hands) example:
 
 
-# TODO: check if getHands() works with controllers
-
 ```lua
 function lovr.draw(pass)
   for i, hand in ipairs(lovr.headset.getHands()) do
@@ -54,7 +52,7 @@ end
 If you have trouble with hand tracking, you can switch to controllers without changing the code.
 </small>
 
-After launching it on your headset, you'll see two 10 centimeters white spheres following your hands positions.
+After launching it on your headset, you'll see two white spheres following your hands positions.
 
 To study what exactly the code does, you can check out these pages in the docs:
 
@@ -126,7 +124,7 @@ If the vector is used only within one frame (it isn't assigned to a variable use
 If you use a temporary vector during another frame, you'll get an error saying `'Attempt to use a temporary vector from a previous frame'`.
 </details>
 
-No we need to detect whether the hand was touching the cube while the grab event fired.
+Now we need to detect whether the hand was touching the cube while the grab event fired.
 
 We'll add an `isActive` property to each box...
 
@@ -172,7 +170,8 @@ function lovr.draw(pass)
             end
         end
 
-        -- ...
+        pass:setColor(0xffffff)
+        pass:sphere(handPosition, .1)
     end
 end
 ```
@@ -336,7 +335,13 @@ end
 ```lua
 function lovr.draw(pass)
     for i, hand in ipairs(lovr.headset.getHands()) do
-        -- ...
+        local handPosition = vec3(lovr.headset.getPosition(hand))
+
+        local wasPressed = lovr.headset.wasPressed(hand, 'trigger')
+
+        if wasPressed then
+            -- ...
+        end
 
         local wasReleased = lovr.headset.wasReleased(hand, 'trigger')
 
@@ -358,7 +363,17 @@ function lovr.draw(pass)
     for i, hand in ipairs(lovr.headset.getHands()) do
         local handPosition = vec3(lovr.headset.getPosition(hand))
 
-        -- ...
+        local wasPressed = lovr.headset.wasPressed(hand, 'trigger')
+
+        if wasPressed then
+            -- ...
+        end
+
+        local wasReleased = lovr.headset.wasReleased(hand, 'trigger')
+
+        if wasReleased then
+            grabbedBoxes[hand] = nil
+        end
 
         local grabbedBox = grabbedBoxes[hand]
 
@@ -377,7 +392,9 @@ To highlight a grabbed box, we'll change its color:
 
 ```lua
 function lovr.draw(pass)
-    -- ...
+    for i, hand in ipairs(lovr.headset.getHands()) do
+        -- ...
+    end
 
     for _, box in ipairs(boxes) do
         local isGrabbed = (
