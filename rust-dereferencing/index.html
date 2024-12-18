@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/mvp.css" />
+        <link rel="stylesheet" href="/style.css" />
+        <title>micouy's blog</title>
+    </head>
+
+    <body>
+        <main>
+<a href="/">micouy's blog</a>
+
+<h1 class="title">I do understand the * operator in Rust now (updated)</h1>
+
+<p class="subtitle"><strong>2022-03-19</strong></p>
+
+<h2 id="update">Update</h2>
+<p><a href="/#original-post">See the original post below.</a></p>
+<p>I've <a href="https://www.reddit.com/r/rust/comments/thvc2e/i_still_dont_understand_the_operator_in_rust/?utm_source=share&amp;utm_medium=web2x&amp;context=3">linked this post on r/rust</a> and I've got a ton of helpful answers. I'll explain what I've learned.</p>
+<p>Before I had a vague idea that dereferencing means "following the pointer (the reference) and trying to <strong>move</strong> the data from that location". That's why <code>f3</code> and <code>g2</code> confused me. I thought the reference operator surrounding the dereference somehow cancelled the move:</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#898989;">// Doesn&#39;t compile.
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g1</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#877611;">let</span><span> tmp </span><span style="color:#016692;">= *</span><span>thing;
+</span><span style="color:#898989;">//            ┗━ Move data out of `thing`.
+</span><span>
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>tmp.field
+</span><span>}
+</span><span>
+</span><span style="color:#898989;">// Compiles.
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g2</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>(</span><span style="color:#016692;">*</span><span>thing).field
+</span><span style="color:#898989;">//  ┃ ┗━ Move data out of `thing`.
+</span><span style="color:#898989;">//  ┗━━━ No actually cancel that.
+</span><span>}
+</span></code></pre>
+<p>But <a href="https://www.reddit.com/r/rust/comments/thvc2e/comment/i1a8zpw/?utm_source=share&amp;utm_medium=web2x&amp;context=3">u/kiujhytg2' comment</a> made me understand that it was not <code>*</code> which forced the move. Turns out there was another trickster hiding in plain sight...</p>
+<p>The <code>=</code> operator! It had not occured to me before but it all makes sense now.</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#898989;">// Doesn&#39;t compile.
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g1</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#877611;">let</span><span> tmp </span><span style="color:#016692;">= *</span><span>thing;
+</span><span style="color:#898989;">//          ┃ ┗━ Point directly to the referenced data.
+</span><span style="color:#898989;">//          ┗━━━ Try to copy RHS&#39;s value, otherwise move it into `tmp`.
+</span><span>
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>tmp.field
+</span><span>}
+</span><span>
+</span><span style="color:#898989;">// Compiles.
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g2</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>(</span><span style="color:#016692;">*</span><span>thing).field
+</span><span style="color:#898989;">//  ┃ ┗━ Point directly to the referenced data.
+</span><span style="color:#898989;">//  ┗━━━ Create a reference to the expression&#39;s value with a matching lifetime.
+</span><span>}
+</span></code></pre>
+<p>I'm still not sure how Rust determines what lifetime the newly created reference should have. It has been pointed out that <code>*thing</code> is not exactly just <code>Thing</code>. I guess Rust remembers that it's a dereferenced variable and referencing it again restores the original lifetime. Some of the comments pointed me to Rust Reference's <a href="https://doc.rust-lang.org/reference/expressions.html#place-expressions-and-value-expressions">chapter on Place Expressions and Value Expressions</a>. Perhaps it describes it better, I haven't had the time to read it yet.</p>
+<p>Thanks to all of the commenters, I appreciate the thorough explanations and a very helpful discussion. If you think I should file a PR somewhere to add this information to Rust's documentation, please let me know in the comments here or on Reddit.</p>
+<h2 id="original-post">Original post</h2>
+<p>I’m trying to explain references to people beginning programming in Rust. Despite using Rust for a couple of years now, I’m unable to answer this question: Why can’t I just deref an immutable reference to access the owned data?</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#877611;">fn </span><span style="color:#a15001;">modify</span><span>(</span><span style="color:#696989;">arg</span><span>: </span><span style="color:#016692;">&amp;</span><span>String) {
+</span><span>    </span><span style="color:#877611;">let </span><span style="color:#014a69;">mut</span><span> arg: </span><span style="color:#646409;">String </span><span style="color:#016692;">= *</span><span>arg;
+</span><span>    arg.</span><span style="color:#7a7025;">push_str</span><span>(</span><span style="color:#009f78;">&quot;smth&quot;</span><span>);
+</span><span>}
+</span></code></pre>
+<p>I know how stupid this sounds. But I still genuinely don’t know the reason why not. I don’t think there’s a rule that says "You shall not dereference an immutable reference.". What else could the deref operator do?</p>
+<p>I’ve tried to answer that last question, but docs on this topic are rather scarce...</p>
+<p>Note: The opposite of referencing by using <code>&amp;</code> is <em>dereferencing</em>, which is accomplished with the dereference operator, <code>*</code>.</p>
+<p><a href="https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html">Source</a></p>
+<p>Whatever "opposite of referencing" means in this sentence, it does not mean "taking a reference and returning the value it points to". Despite <code>&amp;</code> and <code>*</code> being an obvious reference to pointer operators in C, the deref operator is not analogous at all. It’s simply impossible to dereference a reference in Rust (unless a is <code>Copy</code>):</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#877611;">let</span><span> a </span><span style="color:#016692;">= </span><span style="color:#646409;">String</span><span>::from(</span><span style="color:#009f78;">&quot;hello&quot;</span><span>);
+</span><span style="color:#877611;">let</span><span> b </span><span style="color:#016692;">= &amp;</span><span>a;
+</span><span style="color:#877611;">let</span><span> c </span><span style="color:#016692;">= *</span><span>b; </span><span style="color:#898989;">// Error!
+</span></code></pre>
+<p>I think dereferencing acutally isn’t the opposite of referencing in Rust. The opposite of referencing is dropping a reference, and the deref operator is totally unrelated to the ref operator. It could be implemented as a function in std [1]:</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#877611;">fn </span><span style="color:#a15001;">copy</span><span>&lt;T: </span><span style="color:#646409;">Copy</span><span>&gt;(</span><span style="color:#696989;">t</span><span>: </span><span style="color:#016692;">&amp;</span><span>T) -&gt; T { </span><span style="color:#898989;">/* copy bytes and return owned value [2] */ </span><span>}
+</span></code></pre>
+<p>But it gets even worse.</p>
+<p>In Rust the meaning of <code>&amp;</code> and <code>*</code> <strong>depend on the context</strong>. And I’m not talking about left hand side vs right hand side <code>*a = *b</code> or pattern matching <code>let &amp;c = b;</code>.<em>Taking a reference</em> and <em>dereferencing</em> both alter their meaning depending on the surrounding code:</p>
+<p>Note that each example is supposed to do the same thing — take a reference to <code>Thing</code> and return a reference to its field.</p>
+<pre data-lang="rust" style="background-color:#ffffff;color:#010101;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#877611;">struct </span><span style="color:#a15001;">Thing </span><span>{
+</span><span>    </span><span style="color:#696989;">field</span><span>: String,
+</span><span>}
+</span><span style="color:#898989;">// Compiles. Straight and simple.
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">f1</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>thing.field
+</span><span>}
+</span><span>
+</span><span style="color:#898989;">// Doesn&#39;t compile...
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">f2</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#877611;">let</span><span> tmp </span><span style="color:#016692;">=</span><span> thing.field;
+</span><span>
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>tmp
+</span><span>}
+</span><span>
+</span><span style="color:#898989;">// Compiles?!
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">f3</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>(thing.field)
+</span><span>}
+</span><span>It’s the same with </span><span style="color:#016692;">*</span><span>:
+</span><span>
+</span><span style="color:#898989;">// Doesn&#39;t compile...
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g1</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#877611;">let</span><span> tmp </span><span style="color:#016692;">= *</span><span>thing;
+</span><span>
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>tmp.field
+</span><span>}
+</span><span>
+</span><span style="color:#898989;">// Compiles?!
+</span><span style="color:#877611;">fn </span><span style="color:#a15001;">g2</span><span>(</span><span style="color:#696989;">thing</span><span>: </span><span style="color:#016692;">&amp;</span><span>Thing) -&gt; </span><span style="color:#016692;">&amp;</span><span>String {
+</span><span>    </span><span style="color:#016692;">&amp;</span><span>(</span><span style="color:#016692;">*</span><span>thing).field
+</span><span>}
+</span></code></pre>
+<p>Seeing <code>f1</code> compile and <code>f2</code> throw an error confused me. But I explained to myself that it’s just the syntax, that the compiler understands <code>&amp;thing.field</code> as one integral thing and it can’t be broken down. But there’s no way to explain why <code>f3</code> compiles then.</p>
+<p>In <code>f1</code> and <code>f3</code> the reference operator means "re-reference the field with the same lifetime as <code>Thing</code>". But in <code>f2</code> the same reference operator means "create a new reference with lifetime limited to the current scope".</p>
+<p>And in <code>g1</code> the deref operator means copy but in <code>g2</code> it gets combined with the reference operator, despite the parentheses, and interpreted as "re-reference" again.</p>
+<p>Questions to the audience:</p>
+<p>What <strong>exactly</strong> does the deref operator do under the hood?
+What rule prohibits me from dereferencing an immutable reference?
+Why is the meaning of <code>&amp;</code> and <code>*</code> context-dependent?
+Why do the docs suggest that <code>*</code> is the opposite of <code>&amp;</code> (with their names, by reference to C’s operators, in the note in the book) when they’re clearly not? Why is there no explanation of what <code>*</code> does?</p>
+<hr />
+<p>[1] Except for the left hand side: <code>*reference = new_value;</code>. That’s the only place where <code>*</code> seems useful.</p>
+<p>[2] There would be some issues with smart pointers implementing <code>Deref</code>. Maybe they could implement <code>get_ref</code> method instead, like <a href="https://doc.rust-lang.org/stable/std/io/struct.BufReader.html#method.get_ref"><code>BufReader</code> does</a>.</p>
+
+
+<script
+    src="https://utteranc.es/client.js"
+    repo="micouy/micouy.github.io"
+    issue-term="pathname"
+    theme="github-light"
+    crossorigin="anonymous"
+    async
+></script>
+</main>
+    </body>
+</html>
