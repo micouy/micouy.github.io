@@ -1,0 +1,63 @@
+@import url(https://fonts.bunny.net/css?family=be-vietnam-pro:400);
+
+:root {
+    --width-card-wide: 1080px;
+    --color-link: blue;
+    --font-family: sans-serif;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+}
+
+main p {
+    text-align: justify;
+    overflow-x: hidden;
+}
+
+main img {
+    /* align-self: center; */
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+    max-height: 50rem;
+}
+
+main > pre {
+    width: 100%;
+}
+
+main a {
+    display: inline;
+}
+
+main small > code,
+main p > code,
+main a > code {
+    display: inline;
+    padding: 0.1em 0.3em;
+}
+
+main small {
+    @media (min-width: 768px) {
+        font-size: 0.7rem;
+    }
+
+    @media (max-width: 768px) {
+        font-size: 1rem;
+    }
+}
+
+pre > code {
+    font-size: 1rem;
+}
+
+code {
+    overflow-x: scroll;
+    text-wrap: nowrap !important;
+}
+
+main small code {
+    font-size: inherit;
+}

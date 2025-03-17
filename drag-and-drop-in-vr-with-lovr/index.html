@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/mvp.css" />
+        <link rel="stylesheet" href="/style.css" />
+        <title>micouy's blog</title>
+    </head>
+
+    <body>
+        <main>
+<a href="/">micouy's blog</a>
+
+<h1 class="title">Drag &amp; drop in VR with LÖVR</h1>
+
+<p class="subtitle"><strong>2024-11-29</strong></p>
+
+<p>LÖVR is a delightful to use VR framework. In this post I'll explain how to implement a simple drag &amp; drog feature in it.</p>
+<p>For LÖVR beginners, <a href="https://lovr.org/docs/Getting_Started">here's a guide on how to get started</a>.</p>
+<p>Surprisingly you don't need a headset to run LÖVR apps - you can just call <code>lovr .</code> in a folder with a <code>main.lua</code> file. This will launch an emulator on your computer. For our drag &amp; drop feature however, we will need the headset to get the positions, orientations and gestures of our hands. I'm using a Meta Quest 3. If you don't have a headset yet, I'd recommend checking out <a href="https://www.meta.com/quest/quest-3s/">Meta Quest 3S</a>, because it's so cheap.</p>
+<h2 id="hello-world-launching-the-app-on-your-headset">Hello World &amp; Launching the app on your headset</h2>
+<p>We'll start with a simple hello world app:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">text</span><span>(</span><span style="color:#009f78;">&quot;hello world&quot;</span><span>, </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#8c008a;">0</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">1</span><span>), </span><span style="color:#8c008a;">0.1</span><span>, </span><span style="color:#696989;">quat</span><span>())
+</span><span style="color:#016692;">end
+</span></code></pre>
+<small>
+<p><code>vec3(0, 1, -1)</code> the position of the text, where negative Z axis is in the direction the headset is facing.</p>
+<p><code>0.1</code> is the scale of the text.</p>
+<p><code>quat</code> constructs a default quaternion, a mathematical object storing the information about the orientation in three dimensions.</p>
+</small>
+<p>That's the whole program. You can save it to a file named <code>main.lua</code> in a new project folder. To launch it on your headset, follow <a href="https://lovr.org/docs/Getting_Started_(Quest)">these instructions</a>.</p>
+<h2 id="hand-tracking-with-lovr">Hand tracking with LÖVR</h2>
+<p>LÖVR exposes a very simple API for tracking both hands and controllers. The whole API is documented very well in <a href="https://lovr.org/docs/Getting_Started">the docs</a>, together with examples.</p>
+<p>We can start by copying the <a href="https://lovr.org/docs/Intro/Tracked_Hands">Tracked Hands</a> example:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>  </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">x</span><span>, </span><span style="color:#696989;">y</span><span>, </span><span style="color:#696989;">z </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>)
+</span><span>    </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">x</span><span>, </span><span style="color:#696989;">y</span><span>, </span><span style="color:#696989;">z</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>  </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<small>
+If you have trouble with hand tracking, you can switch to controllers without changing the code.
+</small>
+<p>After launching it on your headset, you'll see two white spheres following your hands positions.</p>
+<p>To study what exactly the code does, you can check out these pages in the docs:</p>
+<ul>
+<li><a href="https://lovr.org/docs/lovr.draw"><code>lovr.draw</code></a></li>
+<li><a href="https://lovr.org/docs/lovr.headset.getHands"><code>lovr.headset.getHands</code></a></li>
+<li><a href="https://lovr.org/docs/lovr.headset.getPosition"><code>lovr.headset.getPosition</code></a></li>
+<li><a href="https://lovr.org/docs/Pass:sphere"><code>Pass:sphere</code></a></li>
+</ul>
+<h2 id="user-input">User input</h2>
+<p>Now we need to detect grab events. We'll use the <code>trigger</code> input fired when the controller trigger is pressed or when the user pinches their fingers.</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">x</span><span>, </span><span style="color:#696989;">y</span><span>, </span><span style="color:#696989;">z </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#898989;">-- Set white color by default.
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#898989;">-- Set red color if the user just tried to grab.
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>,</span><span style="color:#009f78;">&#39;trigger&#39;</span><span>) </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xff0000</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">x</span><span>, </span><span style="color:#696989;">y</span><span>, </span><span style="color:#696989;">z</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>Now whenever you pinch your fingers, you'll see the spheres flicker red for a single frame.</p>
+<p>Let's display something that we can grab.</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">boxes </span><span style="color:#016692;">= </span><span>{ </span><span style="color:#696989;">box1</span><span>, </span><span style="color:#696989;">box2 </span><span>}
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#898989;">-- The rest of the owl...
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">quat</span><span>(), </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>See <a href="https://lovr.org/docs/Pass:box"><code>Pass:box</code></a>.</p>
+<details>
+<summary>
+A note on vec3(...) and lovr.math.newVec3(...)
+</summary>
+<p>You might notice that in the Hello World example I instantiated a vector using <a href="https://lovr.org/docs/lovr.math.vec3"><code>vec3(...)</code></a> and here I used <a href="https://lovr.org/docs/lovr.math.newVec3"><code>lovr.math.newVec3(...)</code></a>. It's not random.</p>
+<p>If the vector is used only within one frame (it isn't assigned to a variable used outside of <code>lovr.draw</code> or <code>lovr.update</code>), I can construct a temporary vector with <code>vec3(...)</code>. If I need a vector to live for longer, I need to use <code>lovr.math.newVec3(...)</code>.</p>
+<p>If you use a temporary vector during another frame, you'll get an error saying <code>'Attempt to use a temporary vector from a previous frame'</code>.</p>
+</details>
+<p>Now we need to detect whether the hand was touching the cube while the grab event fired.</p>
+<p>We'll add an <code>isActive</code> property to each box...</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1.5</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>),
+</span><span>    </span><span style="color:#009f78;">isActive </span><span>= </span><span style="color:#333366;">false</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1.5</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">isActive </span><span>= </span><span style="color:#333366;">false</span><span>,
+</span><span>}
+</span></code></pre>
+<p>...convert the coordinates returned by <code>getPosition(...)</code> into a vector and update code which displays the spheres...</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>...then toggle <code>isActive</code> of a box the user grabbed...</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>            </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">and </span><span style="color:#696989;">isPointInsideBox</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#696989;">box</span><span>) </span><span style="color:#016692;">then
+</span><span>                </span><span style="color:#696989;">box</span><span>.isActive </span><span style="color:#016692;">= not </span><span style="color:#696989;">box</span><span>.isActive
+</span><span>            </span><span style="color:#016692;">end
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>We'll also change box's color depending on whether it is active:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">box</span><span>.isActive </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0x00ff00</span><span>)
+</span><span>        </span><span style="color:#016692;">else
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">quat</span><span>(), </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>And lastly, let's implement the <code>isPointInsideBox</code> function:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#a15001;">isPointInsideBox</span><span>(</span><span style="color:#696989;">point</span><span>, </span><span style="color:#696989;">box</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">relativePoint </span><span style="color:#016692;">= </span><span style="color:#696989;">point </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position </span><span style="color:#016692;">+ </span><span>(</span><span style="color:#696989;">box</span><span>.dimensions </span><span style="color:#016692;">/ </span><span style="color:#8c008a;">2</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">width</span><span>, </span><span style="color:#696989;">height</span><span>, </span><span style="color:#696989;">depth </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.dimensions:</span><span style="color:#696989;">unpack</span><span>()
+</span><span>
+</span><span>    </span><span style="color:#016692;">return </span><span>(
+</span><span>        </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">width
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">height
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">depth
+</span><span>    )
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>We're adding <code>box.dimensions / 2</code> because <code>box.position</code> marks the center of the drawn box, not its corner.</p>
+<details>
+<summary>
+Whole code
+</summary>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1.5</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>),
+</span><span>    </span><span style="color:#009f78;">isActive </span><span>= </span><span style="color:#333366;">false</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1.5</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">isActive </span><span>= </span><span style="color:#333366;">false</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">boxes </span><span style="color:#016692;">= </span><span>{ </span><span style="color:#696989;">box1</span><span>, </span><span style="color:#696989;">box2 </span><span>}
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>            </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">and </span><span style="color:#696989;">isPointInsideBox</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#696989;">box</span><span>) </span><span style="color:#016692;">then
+</span><span>                </span><span style="color:#696989;">box</span><span>.isActive </span><span style="color:#016692;">= not </span><span style="color:#696989;">box</span><span>.isActive
+</span><span>            </span><span style="color:#016692;">end
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">box</span><span>.isActive </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0x00ff00</span><span>)
+</span><span>        </span><span style="color:#016692;">else
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">quat</span><span>(), </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#a15001;">isPointInsideBox</span><span>(</span><span style="color:#696989;">point</span><span>, </span><span style="color:#696989;">box</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">relativePoint </span><span style="color:#016692;">= </span><span style="color:#696989;">point </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position </span><span style="color:#016692;">+ </span><span>(</span><span style="color:#696989;">box</span><span>.dimensions </span><span style="color:#016692;">/ </span><span style="color:#8c008a;">2</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">width</span><span>, </span><span style="color:#696989;">height</span><span>, </span><span style="color:#696989;">depth </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.dimensions:</span><span style="color:#696989;">unpack</span><span>()
+</span><span>
+</span><span>    </span><span style="color:#016692;">return </span><span>(
+</span><span>        </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">width
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">height
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">depth
+</span><span>    )
+</span><span style="color:#016692;">end
+</span></code></pre>
+</details>
+<p>If you run your code now, you should see the boxes change its color to green when you pinch them, and then back to white when you do it again.</p>
+<h2 id="grabbing">Grabbing</h2>
+<p>Now that we're able to detect whether the user grabbed something, let's make it follow our hand.</p>
+<p>We need to keep track of which hand is grabbing which box in order to move the boxes correctly. We'll store which hand is grabbing which box together with the offsets:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">boxes </span><span style="color:#016692;">= </span><span>{ </span><span style="color:#696989;">box1</span><span>, </span><span style="color:#696989;">box2 </span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBoxes </span><span style="color:#016692;">= </span><span>{
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>}
+</span></code></pre>
+<small>
+"hand/left" and "hand/right" are the hand identifiers used by LÖVR.
+</small>
+<p>On each trigger event we'll iterate over each box and store it in <code>grabbedBoxes</code> if it was grabbed, alongside the offset...</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>                </span><span style="color:#016692;">if </span><span style="color:#696989;">isPointInsideBox</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#696989;">box</span><span>) </span><span style="color:#016692;">then
+</span><span>                    </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span>{
+</span><span>                        </span><span style="color:#009f78;">box </span><span>= </span><span style="color:#696989;">box</span><span>,
+</span><span>                        </span><span style="color:#009f78;">offset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position),
+</span><span>                    }
+</span><span>                </span><span style="color:#016692;">end
+</span><span>            </span><span style="color:#016692;">end
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>...or remove it from <code>grabbedBoxes</code> if it was released...</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#898989;">-- ...
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasReleased</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span style="color:#333366;">nil
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>...and lastly move the grabbed box:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#898989;">-- ...
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasReleased</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span style="color:#333366;">nil
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">= </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>]
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBox</span><span>.box.position:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">grabbedBox</span><span>.offset)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>To highlight a grabbed box, we'll change its color:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">= </span><span>(
+</span><span>            (</span><span style="color:#696989;">grabbedBoxes</span><span>.left </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>.left.box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>            </span><span style="color:#016692;">or </span><span>(</span><span style="color:#696989;">grabbedBoxes</span><span>.right </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>.right.box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>        )
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0x00ff00</span><span>)
+</span><span>        </span><span style="color:#016692;">else
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">quat</span><span>(), </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span></code></pre>
+<details>
+<summary>
+Whole code
+</summary>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">boxes </span><span style="color:#016692;">= </span><span>{ </span><span style="color:#696989;">box1</span><span>, </span><span style="color:#696989;">box2 </span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBoxes </span><span style="color:#016692;">= </span><span>{
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>                </span><span style="color:#016692;">if </span><span style="color:#696989;">isPointInsideBox</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#696989;">box</span><span>) </span><span style="color:#016692;">then
+</span><span>                    </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span>{
+</span><span>                        </span><span style="color:#009f78;">box </span><span>= </span><span style="color:#696989;">box</span><span>,
+</span><span>                        </span><span style="color:#009f78;">offset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position),
+</span><span>                    }
+</span><span>                </span><span style="color:#016692;">end
+</span><span>            </span><span style="color:#016692;">end
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasReleased</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span style="color:#333366;">nil
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">= </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>]
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBox</span><span>.box.position:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">grabbedBox</span><span>.offset)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">= </span><span>(
+</span><span>            (</span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>] </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>].box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>            </span><span style="color:#016692;">or </span><span>(</span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>] </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>].box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>        )
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0x00ff00</span><span>)
+</span><span>        </span><span style="color:#016692;">else
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">quat</span><span>(), </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#a15001;">isPointInsideBox</span><span>(</span><span style="color:#696989;">point</span><span>, </span><span style="color:#696989;">box</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">relativePoint </span><span style="color:#016692;">= </span><span style="color:#696989;">point </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position </span><span style="color:#016692;">+ </span><span>(</span><span style="color:#696989;">box</span><span>.dimensions </span><span style="color:#016692;">/ </span><span style="color:#8c008a;">2</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">width</span><span>, </span><span style="color:#696989;">height</span><span>, </span><span style="color:#696989;">depth </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.dimensions:</span><span style="color:#696989;">unpack</span><span>()
+</span><span>
+</span><span>    </span><span style="color:#016692;">return </span><span>(
+</span><span>        </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">width
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">height
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">depth
+</span><span>    )
+</span><span style="color:#016692;">end
+</span></code></pre>
+</details>
+<p>Now you should have a working drag'n' drop feature. But we can extend it a bit.</p>
+<h2 id="rotating-boxes">Rotating boxes</h2>
+<p>Rotation works analogously to translation – we need to store the "offset" of orientations at the moment of grabbing in order to apply it in each frame relative to hands current orientation.</p>
+<p>First, store the orientation of each box:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#009f78;">orientation </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#009f78;">orientation </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(),
+</span><span>}
+</span></code></pre>
+<p>Fetch hand orientation:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getOrientation</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#898989;">-- ...
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#898989;">-- ...
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>We'll modify entries into <code>grabbedBoxes</code>:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#696989;">positionOffset </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">* </span><span>(</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position)
+</span><span style="color:#696989;">orientationOffset </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">* </span><span style="color:#696989;">box</span><span>.orientation
+</span><span>
+</span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">box </span><span>= </span><span style="color:#696989;">box</span><span>,
+</span><span>    </span><span style="color:#009f78;">positionOffset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#696989;">positionOffset</span><span>),
+</span><span>    </span><span style="color:#009f78;">orientationOffset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(</span><span style="color:#696989;">orientationOffset</span><span>),
+</span><span>}
+</span></code></pre>
+<p>When multiplying a quaternion's conjugate by another quaternion (<code>box.orientation</code>) or by a vector (<code>box.position</code>), you get an offset relative to the first quaternion's frame of reference – in our case, the frame of reference of the hand at the moment of grabbing.</p>
+<p>We can then multiply those offsets by the current orientation of the hand:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#016692;">if </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">then
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.positionOffset
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.orientationOffset
+</span><span>
+</span><span>    </span><span style="color:#696989;">grabbedBox</span><span>.box.position:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">newPosition</span><span>)
+</span><span>    </span><span style="color:#696989;">grabbedBox</span><span>.box.orientation:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">newOrientation</span><span>)
+</span><span style="color:#016692;">end
+</span></code></pre>
+<p>Notice how the position and orientation stay the same, if the hand didn't move:</p>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.positionOffset
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation_0</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">* </span><span>(</span><span style="color:#696989;">handPosition_0 </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position_0)
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">identityQuat </span><span style="color:#016692;">* </span><span>(</span><span style="color:#696989;">handPosition_0 </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position_0)
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span>(</span><span style="color:#696989;">handPosition_0 </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position_0)
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">handPosition_0 </span><span style="color:#016692;">+ </span><span style="color:#696989;">box</span><span>.position_0
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">zeroVector </span><span style="color:#016692;">+ </span><span style="color:#696989;">box</span><span>.position_0
+</span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.position_0
+</span></code></pre>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.orientationOffset
+</span><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation_0</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">* </span><span style="color:#696989;">box</span><span>.orientation_0
+</span><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">identityQuat </span><span style="color:#016692;">* </span><span style="color:#696989;">box</span><span>.orientation_0
+</span><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.orientation_0
+</span></code></pre>
+<details>
+<summary>
+Whole code
+</summary>
+<pre data-lang="lua" style="background-color:#ffffff;color:#010101;" class="language-lua "><code class="language-lua" data-lang="lua"><span style="color:#014a69;">local </span><span style="color:#696989;">box1 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>, </span><span style="color:#8c008a;">0.3</span><span>),
+</span><span>    </span><span style="color:#009f78;">orientation </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">box2 </span><span style="color:#016692;">= </span><span>{
+</span><span>    </span><span style="color:#009f78;">position </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">1</span><span>, </span><span style="color:#016692;">-</span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">dimensions </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>, </span><span style="color:#8c008a;">0.5</span><span>),
+</span><span>    </span><span style="color:#009f78;">orientation </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(),
+</span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">boxes </span><span style="color:#016692;">= </span><span>{ </span><span style="color:#696989;">box1</span><span>, </span><span style="color:#696989;">box2 </span><span>}
+</span><span>
+</span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBoxes </span><span style="color:#016692;">= </span><span>{
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>    [</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>] = </span><span style="color:#333366;">nil</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#696989;">lovr</span><span>.</span><span style="color:#a15001;">draw</span><span>(</span><span style="color:#696989;">pass</span><span>)
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">i</span><span>, </span><span style="color:#696989;">hand </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getHands</span><span>()) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">vec3</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getPosition</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">getOrientation</span><span>(</span><span style="color:#696989;">hand</span><span>))
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasPressed</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasPressed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>                </span><span style="color:#016692;">if </span><span style="color:#696989;">isPointInsideBox</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#696989;">box</span><span>) </span><span style="color:#016692;">then
+</span><span>                    </span><span style="color:#014a69;">local </span><span style="color:#696989;">positionOffset </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">*
+</span><span>                        (</span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position)
+</span><span>                    </span><span style="color:#014a69;">local </span><span style="color:#696989;">orientationOffset </span><span style="color:#016692;">= </span><span style="color:#696989;">quat</span><span>(</span><span style="color:#696989;">handOrientation</span><span>):</span><span style="color:#696989;">conjugate</span><span>() </span><span style="color:#016692;">* </span><span style="color:#696989;">box</span><span>.orientation
+</span><span>
+</span><span>                    </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span>{
+</span><span>                        </span><span style="color:#009f78;">box </span><span>= </span><span style="color:#696989;">box</span><span>,
+</span><span>                        </span><span style="color:#009f78;">positionOffset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newVec3</span><span>(</span><span style="color:#696989;">positionOffset</span><span>),
+</span><span>                        </span><span style="color:#009f78;">orientationOffset </span><span>= </span><span style="color:#696989;">lovr</span><span>.math.</span><span style="color:#696989;">newQuat</span><span>(</span><span style="color:#696989;">orientationOffset</span><span>),
+</span><span>                    }
+</span><span>                </span><span style="color:#016692;">end
+</span><span>            </span><span style="color:#016692;">end
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">= </span><span style="color:#696989;">lovr</span><span>.headset.</span><span style="color:#696989;">wasReleased</span><span>(</span><span style="color:#696989;">hand</span><span>, </span><span style="color:#009f78;">&#39;trigger&#39;</span><span>)
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">wasReleased </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>] </span><span style="color:#016692;">= </span><span style="color:#333366;">nil
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">= </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#696989;">hand</span><span>]
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">grabbedBox </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#014a69;">local </span><span style="color:#696989;">newPosition </span><span style="color:#016692;">= </span><span style="color:#696989;">handPosition </span><span style="color:#016692;">- </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.positionOffset
+</span><span>            </span><span style="color:#014a69;">local </span><span style="color:#696989;">newOrientation </span><span style="color:#016692;">= </span><span style="color:#696989;">handOrientation </span><span style="color:#016692;">* </span><span style="color:#696989;">grabbedBox</span><span>.orientationOffset
+</span><span>
+</span><span>            </span><span style="color:#696989;">grabbedBox</span><span>.box.position:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">newPosition</span><span>)
+</span><span>            </span><span style="color:#696989;">grabbedBox</span><span>.box.orientation:</span><span style="color:#696989;">set</span><span>(</span><span style="color:#696989;">newOrientation</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">sphere</span><span>(</span><span style="color:#696989;">handPosition</span><span>, </span><span style="color:#8c008a;">.1</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span>
+</span><span>    </span><span style="color:#016692;">for </span><span style="color:#696989;">_</span><span>, </span><span style="color:#696989;">box </span><span style="color:#016692;">in </span><span style="color:#7a7025;">ipairs</span><span>(</span><span style="color:#696989;">boxes</span><span>) </span><span style="color:#016692;">do
+</span><span>        </span><span style="color:#014a69;">local </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">= </span><span>(
+</span><span>            (</span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>] </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/left&quot;</span><span>].box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>            </span><span style="color:#016692;">or </span><span>(</span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>] </span><span style="color:#016692;">~= </span><span style="color:#333366;">nil </span><span style="color:#016692;">and </span><span style="color:#696989;">grabbedBoxes</span><span>[</span><span style="color:#009f78;">&quot;hand/right&quot;</span><span>].box </span><span style="color:#016692;">== </span><span style="color:#696989;">box</span><span>)
+</span><span>        )
+</span><span>
+</span><span>        </span><span style="color:#016692;">if </span><span style="color:#696989;">isGrabbed </span><span style="color:#016692;">then
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0x00ff00</span><span>)
+</span><span>        </span><span style="color:#016692;">else
+</span><span>            </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">setColor</span><span>(</span><span style="color:#8c008a;">0xffffff</span><span>)
+</span><span>        </span><span style="color:#016692;">end
+</span><span>
+</span><span>        </span><span style="color:#696989;">pass</span><span>:</span><span style="color:#696989;">box</span><span>(</span><span style="color:#696989;">box</span><span>.position, </span><span style="color:#696989;">box</span><span>.dimensions, </span><span style="color:#696989;">box</span><span>.orientation, </span><span style="color:#009f78;">&#39;line&#39;</span><span>)
+</span><span>    </span><span style="color:#016692;">end
+</span><span style="color:#016692;">end
+</span><span>
+</span><span style="color:#877611;">function </span><span style="color:#a15001;">isPointInsideBox</span><span>(</span><span style="color:#696989;">point</span><span>, </span><span style="color:#696989;">box</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">relativePoint </span><span style="color:#016692;">= </span><span style="color:#696989;">point </span><span style="color:#016692;">- </span><span style="color:#696989;">box</span><span>.position </span><span style="color:#016692;">+ </span><span>(</span><span style="color:#696989;">box</span><span>.dimensions </span><span style="color:#016692;">/ </span><span style="color:#8c008a;">2</span><span>)
+</span><span>    </span><span style="color:#014a69;">local </span><span style="color:#696989;">width</span><span>, </span><span style="color:#696989;">height</span><span>, </span><span style="color:#696989;">depth </span><span style="color:#016692;">= </span><span style="color:#696989;">box</span><span>.dimensions:</span><span style="color:#696989;">unpack</span><span>()
+</span><span>
+</span><span>    </span><span style="color:#016692;">return </span><span>(
+</span><span>        </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.x </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">width
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.y </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">height
+</span><span>        </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&gt; </span><span style="color:#8c008a;">0 </span><span style="color:#016692;">and </span><span style="color:#696989;">relativePoint</span><span>.z </span><span style="color:#016692;">&lt; </span><span style="color:#696989;">depth
+</span><span>    )
+</span><span style="color:#016692;">end
+</span></code></pre>
+</details>
+<p>Now you should have a working drag and drop with rotation!</p>
+
+
+<script
+    src="https://utteranc.es/client.js"
+    repo="micouy/micouy.github.io"
+    issue-term="pathname"
+    theme="github-light"
+    crossorigin="anonymous"
+    async
+></script>
+</main>
+    </body>
+</html>
